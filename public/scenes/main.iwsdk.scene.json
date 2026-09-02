@@ -23,26 +23,14 @@
       ],
       "intensity": 1
     },
-    "com.iwsdk.components.IBLGradient": {
-      "sky": [
-        0.1,
-        0.108,
-        0.125,
-        1
-      ],
-      "equator": [
-        0.17,
-        0.125,
-        0.082,
-        1
-      ],
-      "ground": [
-        0.05,
-        0.045,
-        0.04,
-        1
-      ],
-      "intensity": 1.15
+    "com.iwsdk.components.IBLTexture": {
+      "src": "./hdr/ferndale_studio_11_1k.hdr",
+      "intensity": 0.5,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
     }
   },
   "player": {
@@ -510,7 +498,7 @@
             0.1,
             1
           ],
-          "intensity": 0.5
+          "intensity": 0.28
         }
       }
     },

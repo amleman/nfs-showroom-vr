@@ -12,7 +12,11 @@
     "reference:warmup": "iwsdk reference warmup",
     "typecheck": "tsc --noEmit",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "music": "node scripts/generate-playlist.mjs",
+    "predev": "node scripts/generate-playlist.mjs",
+    "predev:runtime": "node scripts/generate-playlist.mjs",
+    "prebuild": "node scripts/generate-playlist.mjs"
   },
   "dependencies": {
     "@iwsdk/core": "0.5.3",

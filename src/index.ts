@@ -11,8 +11,13 @@ import { CarFinishSystem } from './car-finish.js';
 import { CarSelectorPanelSystem } from './car-selector-panel.js';
 import { CarSwapperSystem } from './car-swapper.js';
 import { CarTurntableSystem } from './car-turntable.js';
+import { MusicSystem } from './music.js';
 import { PanelSystem } from './panel.js';
 import { RobotSystem } from './robot.js';
+import {
+  TurnPivotCaptureSystem,
+  TurnPivotCorrectSystem,
+} from './turn-pivot.js';
 
 World.create(
   document.getElementById('scene-container') as HTMLDivElement,
@@ -25,5 +30,11 @@ World.create(
   world.registerSystem(CarTurntableSystem);
   world.registerSystem(CarSelectorPanelSystem);
   world.registerSystem(CarFinishSystem);
+  world.registerSystem(MusicSystem);
   world.registerSystem(PanelSystem);
+
+  // Bracket the built-in TurnSystem (priority 0) so turning pivots on the head
+  // instead of the play-space origin.
+  world.registerSystem(TurnPivotCaptureSystem, { priority: -10 });
+  world.registerSystem(TurnPivotCorrectSystem, { priority: 10 });
 });

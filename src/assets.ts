@@ -64,7 +64,7 @@ export default defineAssets({
     priority: 'critical',
   },
   'car-bmw-m3-gtr': {
-    url: publicAssetUrl('gltf/bmw_m3_gtr_e46_razor/scene.gltf'),
+    url: publicAssetUrl('gltf/cars/bmw_m3_gtr_e46_razor/scene.gltf'),
     type: AssetType.GLTF,
     name: 'BMW M3 GTR E46 (Razor)',
     priority: 'background',
@@ -73,7 +73,7 @@ export default defineAssets({
   // y = 0 that z-fights the garage floor. See the sibling *_azzurro_hyperion.glb
   // for the untouched download.
   'car-ferrari-550': {
-    url: publicAssetUrl('gltf/ferrari-550-barchetta.glb'),
+    url: publicAssetUrl('gltf/cars/ferrari-550-barchetta.glb'),
     type: AssetType.GLTF,
     name: 'Ferrari 550 Barchetta',
     priority: 'background',
