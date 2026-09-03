@@ -1,53 +1,49 @@
 /**
- * Spins the car on the platform through one full revolution on request.
+ * Spins the display turntable through one full revolution on request.
  *
- * Only the car turns, not the dais — the deck is radially symmetric, so rotating
- * it would look identical while moving the emissive rim for no reason.
+ * Rotation is applied to the `turntable` container node, so the dais and the
+ * car on it turn together as one piece. Each car keeps its own authored
+ * presentation yaw as a child, untouched by the spin.
  *
- * The spin always ends on the yaw it started from, so a car's authored
- * presentation angle survives any number of revolutions.
+ * The spin always ends on the angle it started from, so the staging survives any
+ * number of revolutions.
  */
 
 import {
   createSystem,
-  Entity,
   InputComponent,
   signal,
+  type Object3D,
   type StatefulGamepad,
 } from '@iwsdk/core';
-import { CarShowcase } from './car-showcase-component.js';
-import { CarSwapperSystem } from './car-swapper.js';
 
-/** Seconds for one revolution. Slow enough to read the bodywork as it passes. */
-const REVOLUTION_SECONDS = 14;
+/** Scene node holding the dais and the cars. */
+const TURNTABLE_NODE_ID = 'turntable';
+/**
+ * Seconds per revolution. 0.3x the original 7 s speed, per the brief — slow and
+ * deliberate rather than a showroom spin.
+ */
+const REVOLUTION_SECONDS = 7 / 0.3;
 const TWO_PI = Math.PI * 2;
 
-export class CarTurntableSystem extends createSystem({
-  cars: { required: [CarShowcase] },
-}) {
+export class CarTurntableSystem extends createSystem({}) {
   /** True while a revolution is in progress. The UI subscribes to disable its button. */
   readonly spinning = signal(false);
 
-  private swapper: CarSwapperSystem | undefined;
-  private target: Entity | undefined;
+  private turntable: Object3D | undefined;
   private baseYaw = 0;
   private elapsed = 0;
 
-  init(): void {
-    this.swapper = this.world.getSystem(CarSwapperSystem);
-  }
-
-  /** Begin one revolution of the active car. Ignored while another is running. */
+  /** Begin one revolution. Ignored while another is already running. */
   spin(): void {
     if (this.spinning.peek()) {
       return;
     }
-    const entity = this.swapper?.activeEntity;
-    if (entity?.object3D == null) {
+    const turntable = this.resolveTurntable();
+    if (turntable == null) {
       return;
     }
-    this.target = entity;
-    this.baseYaw = entity.object3D.rotation.y;
+    this.baseYaw = turntable.rotation.y;
     this.elapsed = 0;
     this.spinning.value = true;
   }
@@ -59,50 +55,44 @@ export class CarTurntableSystem extends createSystem({
     if (!this.spinning.peek()) {
       return;
     }
-    const object3D = this.target?.object3D;
-    // Swapping cars mid-spin retires the old target: snap it back to its authored
-    // angle so it is not left parked at some arbitrary yaw when it next appears.
-    if (object3D == null || this.target !== this.swapper?.activeEntity) {
-      this.settle();
+    const turntable = this.resolveTurntable();
+    if (turntable == null) {
+      this.spinning.value = false;
       return;
     }
 
     this.elapsed += delta;
     const t = this.elapsed / REVOLUTION_SECONDS;
     if (t >= 1) {
-      this.settle();
+      turntable.rotation.y = this.baseYaw;
+      this.elapsed = 0;
+      this.spinning.value = false;
       return;
     }
-    // Smoothstep, so the car eases away from and back into its display angle
-    // rather than snapping into full speed.
-    object3D.rotation.y = this.baseYaw + t * t * (3 - 2 * t) * TWO_PI;
+    // Smoothstep, so the platform eases away from and back into rest rather than
+    // snapping into full speed.
+    turntable.rotation.y = this.baseYaw + t * t * (3 - 2 * t) * TWO_PI;
   }
 
   /**
-   * Clicking a thumbstick spins. The stick *axes* belong to LocomotionSystem
-   * (left slides, right turns) but its button is unbound, so this adds a VR
-   * shortcut without stealing movement. `R` is the browser equivalent.
+   * The level loads after this system's init(), so the node is resolved lazily
+   * and cached once found.
+   */
+  private resolveTurntable(): Object3D | undefined {
+    this.turntable ??= this.world.getSceneObject(TURNTABLE_NODE_ID);
+    return this.turntable;
+  }
+
+  /**
+   * X on the left controller spins the platform. The right hand owns the car
+   * carousel (A/B) and both thumbsticks belong to locomotion, so the off hand
+   * gets the turntable and Y stays free. `R` is the browser equivalent.
    */
   private readSpinRequest(): boolean {
     if (this.input.keyboard.getKeyDown('KeyR')) {
       return true;
     }
-    const gamepads = this.input.xr.gamepads;
-    return this.stickClicked(gamepads.left) || this.stickClicked(gamepads.right);
-  }
-
-  private stickClicked(pad: StatefulGamepad | undefined): boolean {
-    return pad?.getButtonDown(InputComponent.Thumbstick) === true;
-  }
-
-  /** Return the target to its authored yaw and end the spin. */
-  private settle(): void {
-    const object3D = this.target?.object3D;
-    if (object3D != null) {
-      object3D.rotation.y = this.baseYaw;
-    }
-    this.target = undefined;
-    this.elapsed = 0;
-    this.spinning.value = false;
+    const left: StatefulGamepad | undefined = this.input.xr.gamepads.left;
+    return left?.getButtonDown(InputComponent.X_Button) === true;
   }
 }

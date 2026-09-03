@@ -4,7 +4,11 @@
   attribute-based sizing and overflows a width-constrained button.
 
   Element ids consumed by CarSelectorSystem: car-name, car-position,
-  prev-car, next-car.
+  prev-car, next-car, spin-car, load-dot.
+
+  load-dot is always laid out and only recolours. Toggling its display would move
+  the button row, and a row that moves under the ray is a row you cannot click.
+  Note: the <style> parser rejects /* */ comments outright.
 -->
 <style>
   @font-face {
@@ -62,6 +66,14 @@
     color: rgba(255, 255, 255, 0.94);
   }
 
+  .load-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 7px;
+    margin-top: 8px;
+    background-color: #dcdcdc;
+  }
+
   .car-position {
     margin-top: 4px;
     margin-bottom: 14px;
@@ -103,7 +115,8 @@
   <div class="panel-content">
     <div class="eyebrow">SHOWROOM</div>
     <div id="car-name" class="car-name">BMW M3 GTR</div>
-    <div id="car-position" class="car-position">1 / 2</div>
+    <div id="car-position" class="car-position">1 / 9</div>
+    <div id="load-dot" class="load-dot"></div>
   </div>
   <Divider></Divider>
   <div class="controls">

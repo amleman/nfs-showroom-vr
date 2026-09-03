@@ -43,3 +43,11 @@ pids/
 .cursor/mcp.json
 .vscode/mcp.json
 .codex/config.toml
+
+# Music tracks. Kept out of the repo: they are commercial releases and ~105 MB,
+# and this repository is public. Drop your own .mp3 files into
+# public/audio/music/ and run `npm run music` to regenerate playlist.json.
+public/audio/music/*.mp3
+# Generated from whatever is in that folder by scripts/generate-playlist.mjs,
+# which predev/prebuild run automatically.
+public/audio/music/playlist.json

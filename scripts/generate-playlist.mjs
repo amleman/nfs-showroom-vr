@@ -19,12 +19,17 @@ const MUSIC_DIR = join(PROJECT_ROOT, 'public', 'audio', 'music');
 const PLAYLIST_PATH = join(MUSIC_DIR, 'playlist.json');
 const AUDIO_EXTENSIONS = new Set(['.mp3', '.ogg', '.m4a', '.aac', '.wav']);
 
-/** "01 - Riders On The Storm.mp3" -> "Riders On The Storm" */
+/**
+ * "01 - Riders On The Storm.mp3" -> "Riders On The Storm"
+ *
+ * Only a leading track number is stripped. Inner dashes are kept: they usually
+ * separate title from artist, and collapsing them runs the two together.
+ */
 function toTitle(fileName) {
   return fileName
     .slice(0, -extname(fileName).length)
     .replace(/^\d+\s*[-_.]\s*/u, '')
-    .replace(/[_-]+/gu, ' ')
+    .replace(/_+/gu, ' ')
     .replace(/\s+/gu, ' ')
     .trim();
 }

@@ -7,6 +7,7 @@
 
 import { AssetType, defineAssets } from '@iwsdk/core';
 import displayPlatform from './scene-assets/display-platform.scene-asset.js';
+import ledStrip from './scene-assets/led-strip.scene-asset.js';
 
 const publicAssetUrl = (filePath: string): string =>
   `${import.meta.env.BASE_URL}${filePath.replace(/^\/+/u, '')}`;
@@ -78,10 +79,64 @@ export default defineAssets({
     name: 'Ferrari 550 Barchetta',
     priority: 'background',
   },
+  // Remaining downloads in public/gltf/cars. Registered so they are placeable,
+  // but 'lazy' so they are not preloaded: together they are ~720k triangles and
+  // ~165 MB of source, and the scene only shows one car at a time.
+  'car-bmw-m3-gtr-black': {
+    url: publicAssetUrl('gltf/cars/bmw_m3_gtr_e46_black.glb'),
+    type: AssetType.GLTF,
+    name: 'BMW M3 GTR E46 (Black)',
+    priority: 'lazy',
+  },
+  'car-camaro-ss-350': {
+    url: publicAssetUrl('gltf/cars/1967_chevrolet_camaro_ss_350_coupe.glb'),
+    type: AssetType.GLTF,
+    name: 'Chevrolet Camaro SS 350 (1967)',
+    priority: 'lazy',
+  },
+  'car-charger-daytona': {
+    url: publicAssetUrl(
+      'gltf/cars/doms_dodge_charger_daytona_1969_fastfurious_6.glb',
+    ),
+    type: AssetType.GLTF,
+    name: 'Dodge Charger Daytona (1969)',
+    priority: 'lazy',
+  },
+  'car-dodge-pickup': {
+    url: publicAssetUrl('gltf/cars/dodge_b-series_pickup_1953_x_mas_car.glb'),
+    type: AssetType.GLTF,
+    name: 'Dodge B-Series Pickup (1953)',
+    priority: 'lazy',
+  },
+  'car-bugatti-eb110': {
+    url: publicAssetUrl('gltf/cars/bugatti_eb110_super_sport_1992.glb'),
+    type: AssetType.GLTF,
+    name: 'Bugatti EB110 Super Sport (1992)',
+    priority: 'lazy',
+  },
+  'car-jiotto-caspita': {
+    url: publicAssetUrl('gltf/cars/Jiotto_Caspita_Roadster.glb'),
+    type: AssetType.GLTF,
+    name: 'Jiotto Caspita Roadster',
+    priority: 'lazy',
+  },
+
+  'sound-system': {
+    url: publicAssetUrl('gltf/sound_system.glb'),
+    type: AssetType.GLTF,
+    name: 'Sound System',
+    priority: 'critical',
+  },
   'car-selector': {
     url: publicAssetUrl('ui/car-selector.uikitml'),
     type: AssetType.UIKitML,
     name: 'Car Selector Panel',
   },
+  'music-player': {
+    url: publicAssetUrl('ui/music_player.uikitml'),
+    type: AssetType.UIKitML,
+    name: 'Music Player Panel',
+  },
   'display-platform': displayPlatform,
+  'led-strip': ledStrip,
 });

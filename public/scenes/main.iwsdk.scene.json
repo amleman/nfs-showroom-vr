@@ -1,14 +1,147 @@
 {
-  "version": "iwsdk.scene.v1",
-  "units": "meters",
+  "authoring": {
+    "composition": {
+      "assumptions": [
+        {
+          "certainty": "high",
+          "id": "garage-scale",
+          "statement": "Garage glTF is authored at ~1/10 scale; the scene node applies scale 10 and lifts its floor to y=0."
+        },
+        {
+          "certainty": "high",
+          "id": "car-orientation",
+          "statement": "Both car glTFs carry a Z-up to Y-up root matrix, so they import upright at scale 1."
+        },
+        {
+          "certainty": "medium",
+          "id": "stage-clearance",
+          "statement": "A 2.7 m dais centred at x=-3.3 clears the structural column near x=+0.3."
+        }
+      ],
+      "feasibility": {
+        "status": "supported"
+      },
+      "features": [],
+      "input": {
+        "kind": "text",
+        "prompt": "NFS Most Wanted inspired VR showroom: industrial garage, dramatic warm spotlights on a hero car, swappable vehicles on a central display platform.",
+        "references": []
+      },
+      "mode": "static",
+      "provenance": {
+        "adapter": {
+          "id": "text-intake",
+          "version": "1.0.0"
+        },
+        "capabilityHash": "sha256:f304c4c96672cb69691b1ee6e3cdbcb87328635ed630642090a5697c5b37ae54",
+        "inputHashes": [
+          "sha256:8b6cc9866fe97cd9c87c3f3ae60670d1e3327931e663157e7a1eb7312ccd521c"
+        ],
+        "skill": {
+          "id": "iwsdk-scene-composer",
+          "version": "1.0.0"
+        }
+      },
+      "representationPolicy": {
+        "allowed": [
+          "asset",
+          "prefab",
+          "pattern"
+        ],
+        "fidelityCeiling": "stylized-static"
+      },
+      "review": {
+        "heroView": "hero",
+        "lenses": [
+          "layout",
+          "geometry",
+          "final"
+        ],
+        "maxCorrectionRounds": 2,
+        "requiredViews": [
+          "hero",
+          "quarter",
+          "spawn-wide"
+        ]
+      },
+      "target": {
+        "assetPolicy": "manifest-assets",
+        "style": "stylized-pbr",
+        "surfaces": [
+          "browser",
+          "vr"
+        ]
+      }
+    },
+    "views": [
+      {
+        "fov": 55,
+        "id": "hero",
+        "position": [
+          -3.3,
+          1.6,
+          6.6
+        ],
+        "projection": "perspective",
+        "role": "hero",
+        "target": [
+          -3.3,
+          1,
+          1.2
+        ]
+      },
+      {
+        "fov": 55,
+        "id": "quarter",
+        "position": [
+          -7.6,
+          2.2,
+          5.4
+        ],
+        "projection": "perspective",
+        "role": "diagnostic",
+        "target": [
+          -3.3,
+          0.9,
+          1.2
+        ]
+      },
+      {
+        "height": 22,
+        "id": "plan",
+        "position": [
+          0,
+          4.2,
+          0.01
+        ],
+        "projection": "orthographic",
+        "role": "diagnostic",
+        "target": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "fov": 90,
+        "id": "spawn-wide",
+        "position": [
+          -3.3,
+          1.6,
+          6.6
+        ],
+        "projection": "perspective",
+        "role": "diagnostic",
+        "target": [
+          -3.3,
+          1.1,
+          1.2
+        ]
+      }
+    ]
+  },
   "components": {
     "com.iwsdk.components.DomeGradient": {
-      "sky": [
-        0.045,
-        0.038,
-        0.03,
-        1
-      ],
       "equator": [
         0.11,
         0.085,
@@ -21,186 +154,36 @@
         0.026,
         1
       ],
-      "intensity": 1
+      "intensity": 1,
+      "sky": [
+        0.045,
+        0.038,
+        0.03,
+        1
+      ]
     },
     "com.iwsdk.components.IBLTexture": {
-      "src": "./hdr/ferndale_studio_11_1k.hdr",
       "intensity": 0.5,
       "rotation": [
         0,
         0,
         0
-      ]
-    }
-  },
-  "player": {
-    "transform": {
-      "position": [
-        -3.3,
-        0,
-        6.6
       ],
-      "rotationDeg": [
-        0,
-        0,
-        0
-      ]
+      "src": "./hdr/ferndale_studio_11_1k.hdr"
     }
   },
-  "authoring": {
-    "views": [
-      {
-        "id": "hero",
-        "role": "hero",
-        "projection": "perspective",
-        "position": [
-          -3.3,
-          1.6,
-          6.6
-        ],
-        "target": [
-          -3.3,
-          1,
-          1.2
-        ],
-        "fov": 55
-      },
-      {
-        "id": "quarter",
-        "role": "diagnostic",
-        "projection": "perspective",
-        "position": [
-          -7.6,
-          2.2,
-          5.4
-        ],
-        "target": [
-          -3.3,
-          0.9,
-          1.2
-        ],
-        "fov": 55
-      },
-      {
-        "id": "plan",
-        "role": "diagnostic",
-        "projection": "orthographic",
-        "position": [
-          0,
-          4.2,
-          0.01
-        ],
-        "target": [
-          0,
-          0,
-          0
-        ],
-        "height": 22
-      },
-      {
-        "id": "spawn-wide",
-        "role": "diagnostic",
-        "projection": "perspective",
-        "position": [
-          -3.3,
-          1.6,
-          6.6
-        ],
-        "target": [
-          -3.3,
-          1.1,
-          1.2
-        ],
-        "fov": 90
-      }
-    ],
-    "composition": {
-      "mode": "static",
-      "input": {
-        "kind": "text",
-        "prompt": "NFS Most Wanted inspired VR showroom: industrial garage, dramatic warm spotlights on a hero car, swappable vehicles on a central display platform.",
-        "references": []
-      },
-      "target": {
-        "surfaces": [
-          "browser",
-          "vr"
-        ],
-        "style": "stylized-pbr",
-        "assetPolicy": "manifest-assets"
-      },
-      "feasibility": {
-        "status": "supported"
-      },
-      "provenance": {
-        "adapter": {
-          "id": "text-intake",
-          "version": "1.0.0"
-        },
-        "skill": {
-          "id": "iwsdk-scene-composer",
-          "version": "1.0.0"
-        },
-        "capabilityHash": "sha256:f304c4c96672cb69691b1ee6e3cdbcb87328635ed630642090a5697c5b37ae54",
-        "inputHashes": [
-          "sha256:8b6cc9866fe97cd9c87c3f3ae60670d1e3327931e663157e7a1eb7312ccd521c"
-        ]
-      },
-      "representationPolicy": {
-        "fidelityCeiling": "stylized-static",
-        "allowed": [
-          "asset",
-          "prefab",
-          "pattern"
-        ]
-      },
-      "features": [],
-      "assumptions": [
-        {
-          "id": "garage-scale",
-          "statement": "Garage glTF is authored at ~1/10 scale; the scene node applies scale 10 and lifts its floor to y=0.",
-          "certainty": "high"
-        },
-        {
-          "id": "car-orientation",
-          "statement": "Both car glTFs carry a Z-up to Y-up root matrix, so they import upright at scale 1.",
-          "certainty": "high"
-        },
-        {
-          "id": "stage-clearance",
-          "statement": "A 2.7 m dais centred at x=-3.3 clears the structural column near x=+0.3.",
-          "certainty": "medium"
-        }
-      ],
-      "review": {
-        "heroView": "hero",
-        "requiredViews": [
-          "hero",
-          "quarter",
-          "spawn-wide"
-        ],
-        "lenses": [
-          "layout",
-          "geometry",
-          "final"
-        ],
-        "maxCorrectionRounds": 2
-      }
-    }
-  },
-  "resources": {},
   "nodes": [
     {
-      "id": "garage",
-      "name": "Garage",
-      "content": {
-        "type": "asset",
-        "asset": "garage",
-        "receiveShadow": true
-      },
       "components": {
         "LocomotionEnvironment": {}
       },
+      "content": {
+        "asset": "garage",
+        "receiveShadow": true,
+        "type": "asset"
+      },
+      "id": "garage",
+      "name": "Garage",
       "transform": {
         "position": [
           0,
@@ -211,94 +194,71 @@
       }
     },
     {
-      "id": "showroom-stage",
-      "name": "Showroom stage",
+      "children": [
+        {
+          "children": [
+            {
+              "components": {
+                "LocomotionEnvironment": {}
+              },
+              "content": {
+                "asset": "display-platform",
+                "receiveShadow": true,
+                "type": "asset"
+              },
+              "id": "display-platform",
+              "name": "Display platform"
+            },
+            {
+              "content": {
+                "type": "group"
+              },
+              "id": "car-mount",
+              "name": "Car mount"
+            }
+          ],
+          "content": {
+            "type": "group"
+          },
+          "id": "turntable",
+          "name": "Turntable"
+        }
+      ],
       "content": {
         "type": "group"
       },
+      "id": "showroom-stage",
+      "name": "Showroom stage",
       "transform": {
         "position": [
           -3.3,
           0,
           1.2
         ]
-      },
-      "children": [
-        {
-          "id": "display-platform",
-          "name": "Display platform",
-          "content": {
-            "type": "asset",
-            "asset": "display-platform",
-            "receiveShadow": true
-          },
-          "components": {
-            "LocomotionEnvironment": {}
-          }
-        },
-        {
-          "id": "car-bmw-m3-gtr",
-          "name": "BMW M3 GTR",
-          "content": {
-            "type": "asset",
-            "asset": "car-bmw-m3-gtr",
-            "castShadow": true
-          },
-          "components": {
-            "CarShowcase": {
-              "slot": 0,
-              "label": "BMW M3 GTR"
-            },
-            "Visibility": {
-              "isVisible": true
-            }
-          },
-          "transform": {
-            "position": [
-              0,
-              0.17,
-              0
-            ],
-            "rotationDeg": [
-              0,
-              -60,
-              0
-            ]
-          }
-        },
-        {
-          "id": "car-ferrari-550",
-          "name": "Ferrari 550 Barchetta",
-          "content": {
-            "type": "asset",
-            "asset": "car-ferrari-550",
-            "castShadow": true
-          },
-          "components": {
-            "CarShowcase": {
-              "slot": 1,
-              "label": "Ferrari 550 Barchetta"
-            },
-            "Visibility": {
-              "isVisible": false
-            }
-          },
-          "transform": {
-            "position": [
-              0,
-              0.17,
-              0
-            ],
-            "rotationDeg": [
-              0,
-              30,
-              0
-            ]
-          }
-        }
-      ]
+      }
     },
     {
+      "components": {
+        "com.iwsdk.components.SpotLight": {
+          "angleDeg": 34,
+          "castShadow": true,
+          "color": [
+            1,
+            0.82,
+            0.62,
+            1
+          ],
+          "decay": 2,
+          "distance": 16,
+          "intensity": 420,
+          "penumbra": 0.55,
+          "shadowBias": -0.0008,
+          "shadowCameraFar": 14,
+          "shadowCameraNear": 0.5,
+          "shadowMapSize": "512",
+          "shadowNormalBias": 0.02
+        }
+      },
       "id": "key-spot",
       "name": "Key spotlight",
       "transform": {
@@ -312,30 +272,25 @@
           0,
           0
         ]
-      },
-      "components": {
-        "com.iwsdk.components.SpotLight": {
-          "color": [
-            1,
-            0.82,
-            0.62,
-            1
-          ],
-          "intensity": 420,
-          "distance": 16,
-          "decay": 2,
-          "angleDeg": 34,
-          "penumbra": 0.55,
-          "castShadow": true,
-          "shadowMapSize": "1024",
-          "shadowBias": -0.0008,
-          "shadowNormalBias": 0.02,
-          "shadowCameraNear": 0.5,
-          "shadowCameraFar": 14
-        }
       }
     },
     {
+      "components": {
+        "com.iwsdk.components.SpotLight": {
+          "angleDeg": 40,
+          "castShadow": false,
+          "color": [
+            1,
+            0.55,
+            0.2,
+            1
+          ],
+          "decay": 2,
+          "distance": 14,
+          "intensity": 320,
+          "penumbra": 0.7
+        }
+      },
       "id": "rim-back",
       "name": "Rim light (rear)",
       "transform": {
@@ -349,25 +304,25 @@
           38.1,
           152.3
         ]
-      },
-      "components": {
-        "com.iwsdk.components.SpotLight": {
-          "color": [
-            1,
-            0.55,
-            0.2,
-            1
-          ],
-          "intensity": 320,
-          "distance": 14,
-          "decay": 2,
-          "angleDeg": 40,
-          "penumbra": 0.7,
-          "castShadow": false
-        }
       }
     },
     {
+      "components": {
+        "com.iwsdk.components.SpotLight": {
+          "angleDeg": 42,
+          "castShadow": false,
+          "color": [
+            0.72,
+            0.8,
+            1,
+            1
+          ],
+          "decay": 2,
+          "distance": 12,
+          "intensity": 320,
+          "penumbra": 0.8
+        }
+      },
       "id": "rim-left",
       "name": "Rim light (left)",
       "transform": {
@@ -381,25 +336,25 @@
           -57.6,
           -38.6
         ]
-      },
-      "components": {
-        "com.iwsdk.components.SpotLight": {
-          "color": [
-            0.72,
-            0.8,
-            1,
-            1
-          ],
-          "intensity": 320,
-          "distance": 12,
-          "decay": 2,
-          "angleDeg": 42,
-          "penumbra": 0.8,
-          "castShadow": false
-        }
       }
     },
     {
+      "components": {
+        "com.iwsdk.components.SpotLight": {
+          "angleDeg": 46,
+          "castShadow": false,
+          "color": [
+            1,
+            0.88,
+            0.74,
+            1
+          ],
+          "decay": 2,
+          "distance": 14,
+          "intensity": 180,
+          "penumbra": 0.9
+        }
+      },
       "id": "fill-front",
       "name": "Fill light (front)",
       "transform": {
@@ -413,25 +368,23 @@
           0,
           0
         ]
-      },
-      "components": {
-        "com.iwsdk.components.SpotLight": {
-          "color": [
-            1,
-            0.88,
-            0.74,
-            1
-          ],
-          "intensity": 180,
-          "distance": 14,
-          "decay": 2,
-          "angleDeg": 46,
-          "penumbra": 0.9,
-          "castShadow": false
-        }
       }
     },
     {
+      "components": {
+        "com.iwsdk.components.PointLight": {
+          "castShadow": false,
+          "color": [
+            1,
+            0.72,
+            0.42,
+            1
+          ],
+          "decay": 2,
+          "distance": 10,
+          "intensity": 85
+        }
+      },
       "id": "bay-left-glow",
       "name": "Bay glow (left)",
       "transform": {
@@ -440,23 +393,23 @@
           3.2,
           -2
         ]
-      },
-      "components": {
-        "com.iwsdk.components.PointLight": {
-          "color": [
-            1,
-            0.72,
-            0.42,
-            1
-          ],
-          "intensity": 85,
-          "distance": 10,
-          "decay": 2,
-          "castShadow": false
-        }
       }
     },
     {
+      "components": {
+        "com.iwsdk.components.PointLight": {
+          "castShadow": false,
+          "color": [
+            1,
+            0.68,
+            0.38,
+            1
+          ],
+          "decay": 2,
+          "distance": 12,
+          "intensity": 110
+        }
+      },
       "id": "bay-back-glow",
       "name": "Bay glow (rear)",
       "transform": {
@@ -465,53 +418,39 @@
           3.4,
           -5
         ]
-      },
-      "components": {
-        "com.iwsdk.components.PointLight": {
-          "color": [
-            1,
-            0.68,
-            0.38,
-            1
-          ],
-          "intensity": 110,
-          "distance": 12,
-          "decay": 2,
-          "castShadow": false
-        }
       }
     },
     {
-      "id": "ambient-warm",
-      "name": "Warm ambient",
       "components": {
         "com.iwsdk.components.HemisphereLight": {
-          "skyColor": [
-            0.42,
-            0.36,
-            0.3,
-            1
-          ],
           "groundColor": [
             0.17,
             0.13,
             0.1,
             1
           ],
-          "intensity": 0.28
+          "intensity": 0.28,
+          "skyColor": [
+            0.42,
+            0.36,
+            0.3,
+            1
+          ]
         }
-      }
+      },
+      "id": "ambient-warm",
+      "name": "Warm ambient"
     },
     {
-      "id": "car-selector-panel",
-      "name": "Car selector",
-      "content": {
-        "type": "asset",
-        "asset": "car-selector"
-      },
       "components": {
         "RayInteractable": {}
       },
+      "content": {
+        "asset": "car-selector",
+        "type": "asset"
+      },
+      "id": "car-selector-panel",
+      "name": "Car selector",
       "transform": {
         "position": [
           -5.7,
@@ -527,12 +466,30 @@
       }
     },
     {
-      "id": "welcome-panel",
-      "name": "Welcome Panel",
-      "content": {
-        "type": "asset",
-        "asset": "welcome-panel"
+      "components": {
+        "RayInteractable": {}
       },
+      "content": {
+        "asset": "music-player",
+        "type": "asset"
+      },
+      "id": "music-player-panel",
+      "name": "Music player",
+      "transform": {
+        "position": [
+          -0.9,
+          1.3,
+          1.2
+        ],
+        "rotationDeg": [
+          0,
+          -24,
+          0
+        ],
+        "scale": 0.45
+      }
+    },
+    {
       "components": {
         "RayInteractable": {},
         "ScreenSpace": {
@@ -542,6 +499,12 @@
           "width": "25vw"
         }
       },
+      "content": {
+        "asset": "welcome-panel",
+        "type": "asset"
+      },
+      "id": "welcome-panel",
+      "name": "Welcome Panel",
       "transform": {
         "position": [
           0,
@@ -550,6 +513,109 @@
         ],
         "scale": 0.4
       }
+    },
+    {
+      "content": {
+        "asset": "sound-system",
+        "castShadow": true,
+        "type": "asset"
+      },
+      "id": "sound-system",
+      "name": "Sound System",
+      "transform": {
+        "position": [
+          -6.6,
+          0.5172,
+          -1.4
+        ],
+        "rotationDeg": [
+          0,
+          45,
+          0
+        ],
+        "scale": 0.65
+      }
+    },
+    {
+      "content": {
+        "asset": "sound-system",
+        "castShadow": true,
+        "type": "asset"
+      },
+      "id": "sound-system-copy",
+      "name": "Sound System",
+      "transform": {
+        "position": [
+          -0.82,
+          0.51,
+          -1.9031
+        ],
+        "rotationDeg": [
+          0,
+          -35,
+          0
+        ],
+        "scale": 0.65
+      }
+    },
+    {
+      "id": "led-strip-left",
+      "name": "led-strip-left",
+      "content": {
+        "type": "asset",
+        "asset": "led-strip"
+      },
+      "transform": {
+        "position": [
+          -5.9,
+          1.35,
+          -2.1
+        ],
+        "rotationDeg": [
+          0,
+          8,
+          0
+        ],
+        "scale": 1.5
+      }
+    },
+    {
+      "id": "led-strip-right",
+      "name": "led-strip-right",
+      "content": {
+        "type": "asset",
+        "asset": "led-strip"
+      },
+      "transform": {
+        "position": [
+          -0.9,
+          1.35,
+          -2.1
+        ],
+        "rotationDeg": [
+          0,
+          -8,
+          0
+        ],
+        "scale": 1.5
+      }
     }
-  ]
+  ],
+  "player": {
+    "transform": {
+      "position": [
+        -3.3,
+        0,
+        6.6
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "resources": {},
+  "units": "meters",
+  "version": "iwsdk.scene.v1"
 }

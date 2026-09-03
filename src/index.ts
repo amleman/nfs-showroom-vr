@@ -7,11 +7,12 @@
 
 import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
-import { CarFinishSystem } from './car-finish.js';
 import { CarSelectorPanelSystem } from './car-selector-panel.js';
 import { CarSwapperSystem } from './car-swapper.js';
+import { AudioReactiveLedSystem } from './audio-reactive-led.js';
 import { CarTurntableSystem } from './car-turntable.js';
-import { MusicSystem } from './music.js';
+import { MusicPanelSystem } from './music-panel.js';
+import { MusicPlayerSystem } from './music-player.js';
 import { PanelSystem } from './panel.js';
 import { RobotSystem } from './robot.js';
 import {
@@ -24,13 +25,17 @@ World.create(
   projectOptions,
 ).then((world) => {
   world.registerSystem(RobotSystem);
+
   // Order matters: each of these resolves the previous one during its own init().
-  // Swapper -> turntable (needs activeEntity) -> panel (needs both).
   world.registerSystem(CarSwapperSystem);
   world.registerSystem(CarTurntableSystem);
   world.registerSystem(CarSelectorPanelSystem);
-  world.registerSystem(CarFinishSystem);
-  world.registerSystem(MusicSystem);
+
+  // Player before the panel and the LEDs; both read its signals/analyser.
+  world.registerSystem(MusicPlayerSystem);
+  world.registerSystem(MusicPanelSystem);
+  world.registerSystem(AudioReactiveLedSystem);
+
   world.registerSystem(PanelSystem);
 
   // Bracket the built-in TurnSystem (priority 0) so turning pivots on the head

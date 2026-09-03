@@ -1,62 +1,94 @@
 /**
- * Cycles the showroom's hero vehicle without tearing down the scene.
+ * Cycles the showroom's hero vehicle, loading each model on demand and holding
+ * only a bounded number in memory.
  *
- * Every candidate car is authored into the scene as a sibling on the display
- * platform and stays loaded; swapping only flips `Visibility`. That keeps the
- * change instant (no GLTF parse mid-session, no GPU upload hitch) at the cost of
- * holding every car in memory — the right trade for a handful of vehicles. For a
- * catalog of dozens, switch to `AssetManager` streaming keyed off `slot`.
+ * The catalog is ~680k triangles and ~145 MB of source. Keeping it all resident
+ * is not an option on a standalone headset, but neither is discarding every car
+ * the instant you leave it — Prev/Next ping-pong would re-download each time.
+ *
+ * So residency is an LRU of {@link RESIDENT_LIMIT} cars. A JS `Map` iterates in
+ * insertion order, which is exactly an LRU queue: re-inserting on access moves an
+ * entry to the back, and the oldest is always `keys().next()`. Evicting frees the
+ * GPU resources *and* drops the AssetManager cache entry, otherwise the cache
+ * would keep handing back geometry that has already been disposed.
  */
 
 import {
+  AnimationMixer,
+  AssetManager,
+  CacheManager,
   createSystem,
-  Entity,
   InputComponent,
+  MathUtils,
   signal,
-  Visibility,
+  type AnimationClip,
+  type Object3D,
   type StatefulGamepad,
 } from '@iwsdk/core';
-import { CarShowcase } from './car-showcase-component.js';
+import { CAR_CATALOG } from './car-catalog.js';
+import { polishCarMaterials } from './car-finish.js';
+import { fitCarToStage } from './car-fit.js';
+import { disposeHierarchy } from './gpu-memory.js';
 
-export class CarSwapperSystem extends createSystem({
-  cars: { required: [CarShowcase] },
-}) {
-  /** Carousel order, ascending by `CarShowcase.slot`. Rebuilt on query change only. */
-  private readonly ordered: Entity[] = [];
-  private activeIndex = 0;
+/** Scene node the loaded car is parented to. */
+const MOUNT_NODE_ID = 'car-mount';
+/** Deck surface height of the dais, in metres above the mount origin. */
+const DECK_Y = 0.17;
+/**
+ * Cars kept in memory. Two means stepping back and forth between neighbours is
+ * instant while at most two texture sets are resident; raise it only if you have
+ * headroom measured on the device, not on desktop.
+ */
+const RESIDENT_LIMIT = 2;
 
-  /** Name of the car on the platform. UI subscribes; read with `.peek()` in update loops. */
-  readonly activeLabel = signal('');
-  /** Position in the carousel, for "2 / 5"-style readouts. */
-  readonly activePosition = signal(0);
+interface ResidentCar {
+  scene: Object3D;
+  clips: AnimationClip[];
+}
+
+export class CarSwapperSystem extends createSystem({}) {
+  /** Name of the car on the platform. */
+  readonly activeLabel = signal(CAR_CATALOG[0]?.label ?? '');
+  /** Position in the carousel, for "2 / 8"-style readouts. */
+  readonly activePosition = signal(1);
   /** How many cars are in the carousel. */
-  readonly carCount = signal(0);
+  readonly carCount = signal(CAR_CATALOG.length);
+  /** True while a model is being fetched, so the UI can show a spinner. */
+  readonly loading = signal(false);
 
-  init(): void {
-    this.queries.cars.subscribe('qualify', () => this.rebuild());
-    this.queries.cars.subscribe('disqualify', () => this.rebuild());
-    this.rebuild();
-  }
+  private activeIndex = 0;
+  private mount: Object3D | undefined;
+  private mounted: Object3D | undefined;
+  private mixer: AnimationMixer | undefined;
+  /** LRU: insertion order is access order, oldest first. */
+  private readonly residents = new Map<string, ResidentCar>();
+  /** Bumped on every swap so a slow load cannot mount a stale car. */
+  private loadToken = 0;
 
-  update(): void {
+  update(delta: number): void {
+    if (this.mount == null) {
+      // The level loads after this system's init(), so resolve lazily and kick
+      // off the first car the moment the mount exists.
+      this.mount = this.world.getSceneObject(MOUNT_NODE_ID);
+      if (this.mount != null) {
+        void this.mountCurrent();
+      }
+      return;
+    }
+    this.mixer?.update(delta);
     const step = this.readInput();
     if (step !== 0) {
       this.cycle(step);
     }
   }
 
-  /** Advance the carousel by `step` slots, wrapping in both directions. */
+  /** Advance the carousel by `step`, wrapping in both directions. */
   cycle(step: number): void {
-    if (this.ordered.length === 0) {
+    const count = CAR_CATALOG.length;
+    if (count === 0) {
       return;
     }
-    const count = this.ordered.length;
     this.select((((this.activeIndex + step) % count) + count) % count);
-  }
-
-  /** The car currently on the platform, or undefined when the carousel is empty. */
-  get activeEntity(): Entity | undefined {
-    return this.ordered[this.activeIndex];
   }
 
   next(): void {
@@ -67,64 +99,115 @@ export class CarSwapperSystem extends createSystem({
     this.cycle(-1);
   }
 
-  /** Show the car at `index` in the carousel and hide the rest. */
   select(index: number): void {
-    if (index < 0 || index >= this.ordered.length) {
+    if (index < 0 || index >= CAR_CATALOG.length || index === this.activeIndex) {
       return;
     }
     this.activeIndex = index;
-    this.applyVisibility();
+    void this.mountCurrent();
+  }
+
+  private async mountCurrent(): Promise<void> {
+    const mount = this.mount;
+    const entry = CAR_CATALOG[this.activeIndex];
+    if (mount == null || entry == null) {
+      return;
+    }
+
+    const token = (this.loadToken += 1);
+    this.activeLabel.value = entry.label;
+    this.activePosition.value = this.activeIndex + 1;
+
+    // Take the old car off the stage first, so two cars never overlap mid-swap.
+    // It stays resident; the LRU decides when it is actually freed.
+    this.unmount();
+
+    let resident = this.residents.get(entry.assetId);
+    if (resident == null) {
+      this.loading.value = true;
+      try {
+        const gltf = await AssetManager.loadGLTFById(entry.assetId);
+        resident = { scene: gltf.scene, clips: gltf.animations ?? [] };
+      } catch (error) {
+        if (token === this.loadToken) {
+          console.warn(`[CarSwapper] Could not load "${entry.label}"`, error);
+          this.loading.value = false;
+        }
+        return;
+      }
+      // A newer swap started while this model was downloading.
+      if (token !== this.loadToken) {
+        return;
+      }
+
+      resident.scene.rotation.y = MathUtils.degToRad(entry.yawDeg);
+      if (!fitCarToStage(resident.scene, DECK_Y)) {
+        console.warn(`[CarSwapper] "${entry.label}" has no visible geometry`);
+      }
+      polishCarMaterials(resident.scene);
+      this.loading.value = false;
+    } else if (token !== this.loadToken) {
+      return;
+    }
+
+    // Re-insert so this becomes the most recently used entry.
+    this.residents.delete(entry.assetId);
+    this.residents.set(entry.assetId, resident);
+
+    mount.add(resident.scene);
+    this.mounted = resident.scene;
+    this.startAnimations(resident);
+    this.evictBeyondLimit();
   }
 
   /**
-   * Rebuild the ordered carousel, keeping the same car on the platform when it
-   * survives the change. Runs on scene load and on any car entering/leaving the
-   * query — never per frame.
+   * Play whatever the model ships with. Only one car currently has a clip (the
+   * black M3 GTR); the rest fall through and cost nothing.
    */
-  private rebuild(): void {
-    const previouslyActive = this.ordered[this.activeIndex];
-    this.ordered.length = 0;
-    for (const entity of this.queries.cars.entities) {
-      this.ordered.push(entity);
+  private startAnimations(resident: ResidentCar): void {
+    this.mixer = undefined;
+    if (resident.clips.length === 0) {
+      return;
     }
-    this.ordered.sort((a, b) => {
-      const slotDelta =
-        (a.getValue(CarShowcase, 'slot') ?? 0) -
-        (b.getValue(CarShowcase, 'slot') ?? 0);
-      return slotDelta !== 0 ? slotDelta : a.index - b.index;
-    });
-
-    const survivingIndex =
-      previouslyActive == null ? -1 : this.ordered.indexOf(previouslyActive);
-    this.activeIndex = survivingIndex >= 0 ? survivingIndex : 0;
-    this.carCount.value = this.ordered.length;
-    this.applyVisibility();
+    const mixer = new AnimationMixer(resident.scene);
+    for (const clip of resident.clips) {
+      mixer.clipAction(clip).play();
+    }
+    this.mixer = mixer;
   }
 
-  private applyVisibility(): void {
-    for (let i = 0; i < this.ordered.length; i += 1) {
-      const entity = this.ordered[i];
-      const visible = i === this.activeIndex;
-      // Visibility proxies object3D.visible when present; fall back to the
-      // object directly so a car authored without the component still hides.
-      if (entity.hasComponent(Visibility)) {
-        entity.setValue(Visibility, 'isVisible', visible);
-      } else if (entity.object3D != null) {
-        entity.object3D.visible = visible;
+  private unmount(): void {
+    this.mixer?.stopAllAction();
+    this.mixer = undefined;
+    this.mounted?.removeFromParent();
+    this.mounted = undefined;
+  }
+
+  /**
+   * Free the least recently used cars. Both halves matter: `disposeHierarchy`
+   * releases the VRAM, and deleting the cache entry stops AssetManager handing
+   * back the now-disposed hierarchy on a later visit.
+   */
+  private evictBeyondLimit(): void {
+    while (this.residents.size > RESIDENT_LIMIT) {
+      const oldest = this.residents.keys().next();
+      if (oldest.done === true) {
+        return;
       }
+      const assetId = oldest.value;
+      const evicted = this.residents.get(assetId);
+      this.residents.delete(assetId);
+      if (evicted == null || evicted.scene === this.mounted) {
+        continue;
+      }
+      disposeHierarchy(evicted.scene);
+      CacheManager.deleteAsset(assetId);
     }
-
-    const active = this.ordered[this.activeIndex];
-    this.activeLabel.value =
-      active == null ? '' : (active.getValue(CarShowcase, 'label') ?? '');
-    this.activePosition.value = this.ordered.length === 0 ? 0 : this.activeIndex + 1;
   }
 
-  /** Net carousel steps requested this frame across every input surface. */
+  /** Net carousel steps requested this frame. */
   private readInput(): number {
     let step = 0;
-
-    // Browser: arrow keys, so the showroom is testable without a headset.
     const keyboard = this.input.keyboard;
     if (keyboard.getKeyDown('ArrowRight')) {
       step += 1;
@@ -132,37 +215,23 @@ export class CarSwapperSystem extends createSystem({
     if (keyboard.getKeyDown('ArrowLeft')) {
       step -= 1;
     }
-
-    const gamepads = this.input.xr.gamepads;
-    step += this.readGamepad(gamepads.left);
-    step += this.readGamepad(gamepads.right);
-    return step;
+    return step + this.readGamepad(this.input.xr.gamepads.right);
   }
 
   /**
-   * Edge-triggered controller input. `getButtonDown` is true only on the frame the
-   * button goes down, so no cooldown bookkeeping is needed.
+   * Right hand only. The left controller is deliberately left alone: X drives
+   * the turntable and Y is unbound, so the off hand never changes the car by
+   * accident.
    */
   private readGamepad(pad: StatefulGamepad | undefined): number {
     if (pad == null) {
       return 0;
     }
     let step = 0;
-    // Face buttons only. The thumbsticks are deliberately untouched: LocomotionSystem
-    // slides on the left stick and turns on the right, so reading them here swapped
-    // the car every time the player moved.
-    // A (right hand) / X (left hand) advance; B / Y go back. Lookups for buttons
-    // this controller lacks return false rather than throwing.
-    if (
-      pad.getButtonDown(InputComponent.A_Button) ||
-      pad.getButtonDown(InputComponent.X_Button)
-    ) {
+    if (pad.getButtonDown(InputComponent.A_Button)) {
       step += 1;
     }
-    if (
-      pad.getButtonDown(InputComponent.B_Button) ||
-      pad.getButtonDown(InputComponent.Y_Button)
-    ) {
+    if (pad.getButtonDown(InputComponent.B_Button)) {
       step -= 1;
     }
     return step;

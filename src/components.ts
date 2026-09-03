@@ -6,7 +6,6 @@
  */
 
 import { defineComponents } from '@iwsdk/core';
-import { CarShowcase } from './car-showcase-component.js';
 import { Robot } from './robot-component.js';
 
-export default defineComponents([Robot, CarShowcase]);
+export default defineComponents([Robot]);
