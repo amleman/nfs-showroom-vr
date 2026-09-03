@@ -19,8 +19,10 @@ import {
   CacheManager,
   createSystem,
   InputComponent,
+  LoopOnce,
   MathUtils,
   signal,
+  type AnimationAction,
   type AnimationClip,
   type Object3D,
   type StatefulGamepad,
@@ -40,6 +42,15 @@ const DECK_Y = 0.17;
  * headroom measured on the device, not on desktop.
  */
 const RESIDENT_LIMIT = 2;
+/**
+ * Where in the clip the doors are fully open.
+ *
+ * The M3 GTR clip is authored as a complete cycle — shut at 0 s, 60 degrees open
+ * at the midpoint, shut again at the end — so playing it through opens and then
+ * closes the car on its own. Open is therefore the midpoint, and closing runs
+ * the first half backwards. A model whose clip only opens would want 1 here.
+ */
+const DOOR_OPEN_RATIO = 0.5;
 
 interface ResidentCar {
   scene: Object3D;
@@ -55,11 +66,19 @@ export class CarSwapperSystem extends createSystem({}) {
   readonly carCount = signal(CAR_CATALOG.length);
   /** True while a model is being fetched, so the UI can show a spinner. */
   readonly loading = signal(false);
+  /** Doors and hood open. */
+  readonly doorsOpen = signal(false);
+  /** Whether the mounted car ships an openable clip at all. */
+  readonly hasDoors = signal(false);
 
   private activeIndex = 0;
   private mount: Object3D | undefined;
   private mounted: Object3D | undefined;
   private mixer: AnimationMixer | undefined;
+  private action: AnimationAction | undefined;
+  private clipDuration = 0;
+  /** 0 shut, 1 open. The action plays toward whichever end this names. */
+  private doorsTarget = 0;
   /** LRU: insertion order is access order, oldest first. */
   private readonly residents = new Map<string, ResidentCar>();
   /** Bumped on every swap so a slow load cannot mount a stale car. */
@@ -75,7 +94,10 @@ export class CarSwapperSystem extends createSystem({}) {
       }
       return;
     }
-    this.mixer?.update(delta);
+    this.updateDoors(delta);
+    if (this.readDoorToggle()) {
+      this.toggleDoors();
+    }
     const step = this.readInput();
     if (step !== 0) {
       this.cycle(step);
@@ -160,25 +182,83 @@ export class CarSwapperSystem extends createSystem({}) {
     this.evictBeyondLimit();
   }
 
+  /** Open the doors and hood if they are shut, close them if they are open. */
+  toggleDoors(): void {
+    const action = this.action;
+    if (action == null) {
+      return;
+    }
+    this.doorsTarget = this.doorsTarget === 1 ? 0 : 1;
+    this.doorsOpen.value = this.doorsTarget === 1;
+    // Un-pause and point the clip at the chosen end. Reversing mid-swing is just
+    // a sign flip, so a half-open car closes from where it is.
+    action.paused = false;
+    action.timeScale = this.doorsTarget === 1 ? 1 : -1;
+  }
+
   /**
-   * Play whatever the model ships with. Only one car currently has a clip (the
-   * black M3 GTR); the rest fall through and cost nothing.
+   * Arm the model's clip, parked shut.
+   *
+   * Scrubbing `action.time` by hand while the action is paused does NOT work:
+   * a paused action contributes nothing, so the car stays in its rest pose no
+   * matter what the time says. Direction is driven with `timeScale` instead and
+   * the action is only paused once it has come to rest at an end.
+   *
+   * Only the black M3 GTR ships a clip today; the rest fall through and cost
+   * nothing.
    */
   private startAnimations(resident: ResidentCar): void {
     this.mixer = undefined;
+    this.action = undefined;
+    this.doorsTarget = 0;
+    this.doorsOpen.value = false;
+    this.hasDoors.value = resident.clips.length > 0;
     if (resident.clips.length === 0) {
       return;
     }
+
+    const clip = resident.clips[0];
     const mixer = new AnimationMixer(resident.scene);
-    for (const clip of resident.clips) {
-      mixer.clipAction(clip).play();
-    }
+    const action = mixer.clipAction(clip);
+    // LoopOnce + clampWhenFinished makes the action stop and hold at whichever
+    // end it reaches, in BOTH directions, so the doors never wrap around from
+    // shut back to open. Parked shut and paused until the player asks.
+    action.setLoop(LoopOnce, 1);
+    action.clampWhenFinished = true;
+    action.play();
+    action.time = 0;
+    action.paused = true;
+
     this.mixer = mixer;
+    this.action = action;
+    this.clipDuration = clip.duration;
+  }
+
+  /**
+   * Advance the door clip. All the clamping lives in the action itself, so this
+   * is just the mixer tick.
+   */
+  private updateDoors(delta: number): void {
+    const mixer = this.mixer;
+    const action = this.action;
+    if (mixer == null || action == null) {
+      return;
+    }
+    mixer.update(delta);
+    // Halt at the open pose. Left alone the clip would carry straight on through
+    // its closing half, which is what made a single press look like two.
+    // Closing needs no such guard: LoopOnce clamps and pauses at 0 by itself.
+    const openTime = this.clipDuration * DOOR_OPEN_RATIO;
+    if (this.doorsTarget === 1 && action.time >= openTime) {
+      action.time = openTime;
+      action.paused = true;
+    }
   }
 
   private unmount(): void {
     this.mixer?.stopAllAction();
     this.mixer = undefined;
+    this.action = undefined;
     this.mounted?.removeFromParent();
     this.mounted = undefined;
   }
@@ -205,6 +285,15 @@ export class CarSwapperSystem extends createSystem({}) {
     }
   }
 
+  /** Y on the left hand toggles the doors; E is the browser equivalent. */
+  private readDoorToggle(): boolean {
+    if (this.input.keyboard.getKeyDown('KeyE')) {
+      return true;
+    }
+    const left: StatefulGamepad | undefined = this.input.xr.gamepads.left;
+    return left?.getButtonDown(InputComponent.Y_Button) === true;
+  }
+
   /** Net carousel steps requested this frame. */
   private readInput(): number {
     let step = 0;
@@ -219,9 +308,9 @@ export class CarSwapperSystem extends createSystem({}) {
   }
 
   /**
-   * Right hand only. The left controller is deliberately left alone: X drives
-   * the turntable and Y is unbound, so the off hand never changes the car by
-   * accident.
+   * Car changes are right hand only. The left controller drives presentation
+   * instead — X spins the turntable, Y opens the doors — so the off hand can
+   * never change the car by accident.
    */
   private readGamepad(pad: StatefulGamepad | undefined): number {
     if (pad == null) {
