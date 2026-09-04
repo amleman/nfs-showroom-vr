@@ -14,20 +14,23 @@
     "build": "vite build",
     "preview": "vite preview",
     "music": "node scripts/generate-playlist.mjs",
-    "predev": "node scripts/generate-playlist.mjs",
-    "predev:runtime": "node scripts/generate-playlist.mjs",
-    "prebuild": "node scripts/generate-playlist.mjs"
+    "predev": "node scripts/generate-playlist.mjs && node scripts/optimize-models.mjs",
+    "predev:runtime": "node scripts/generate-playlist.mjs && node scripts/optimize-models.mjs",
+    "prebuild": "node scripts/generate-playlist.mjs && node scripts/optimize-models.mjs",
+    "models": "node scripts/optimize-models.mjs",
+    "models:force": "node scripts/optimize-models.mjs --force"
   },
   "dependencies": {
     "@iwsdk/core": "0.5.3",
     "three": "npm:super-three@0.181.0"
   },
   "devDependencies": {
-    "@iwsdk/reference": "0.5.3",
     "@iwsdk/cli": "0.5.3",
+    "@iwsdk/reference": "0.5.3",
     "@iwsdk/vite-plugin-dev": "0.5.3",
     "@meta-quest/metavr": "^1.3.2",
     "@types/three": "^0.181.0",
+    "sharp": "0.35.3",
     "typescript": "^5.5.0",
     "vite": "^7.1.4"
   },

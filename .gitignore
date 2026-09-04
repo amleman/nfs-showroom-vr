@@ -51,3 +51,8 @@ public/audio/music/*.mp3
 # Generated from whatever is in that folder by scripts/generate-playlist.mjs,
 # which predev/prebuild run automatically.
 public/audio/music/playlist.json
+
+# Headset-sized models generated from public/gltf by scripts/optimize-models.mjs,
+# which predev/prebuild run automatically. Derived output, like playlist.json:
+# the sources next to them are what is versioned.
+public/gltf/optimized/
