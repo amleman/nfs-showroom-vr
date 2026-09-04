@@ -1,35 +1,42 @@
 /**
  * Drives the garage's LED equaliser strips from the music analyser.
  *
- * Bars react on two channels at once: height (Y scale) and emissive intensity.
- * Both are cheap — a transform and a material uniform, no shader recompiles and
- * no lights added to the scene.
+ * Bars react on two channels at once: height and brightness. Each strip is a
+ * single `InstancedMesh`, so a frame's work is writing two small typed arrays
+ * and flagging them — no per-bar objects, no matrix composition, no draw call
+ * per bar.
  *
- * These bars deliberately do not illuminate the car. Emissive materials in
- * three.js do not cast light, so however hard the strip pulses the paint is
- * untouched and the key spotlight stays the only thing shaping the stage.
+ * The writes go straight into `instanceMatrix` and `instanceColor` rather than
+ * through `setMatrixAt`/`setColorAt`. Those helpers compose and decompose a full
+ * 4x4, and the only term that ever changes here is the Y scale at element 5:
+ * the bars never move, they only grow. Same for colour, which is three floats.
+ *
+ * These bars deliberately do not illuminate the car. They are unlit
+ * `MeshBasicMaterial`, so however hard the strip pulses it emits nothing into
+ * the scene and the key spotlight keeps the stage to itself.
  *
  * Strips are found by scene node id rather than by an ECS component: they are
  * fixed dressing, not something the rest of the app queries.
  */
 
 import {
+  Color,
   createSystem,
+  InstancedMesh,
   MathUtils,
-  Mesh,
-  type MeshStandardMaterial,
   type Object3D,
 } from '@iwsdk/core';
 import { MusicPlayerSystem } from './music-player.js';
-import { BAR_NAME_PREFIX } from './scene-assets/led-strip.scene-asset.js';
+import { BAR_COLORS, BAR_MESH_NAME } from './scene-assets/led-strip.scene-asset.js';
 
 /** Scene nodes holding a placed `led-strip`. */
 const STRIP_NODE_IDS = ['led-strip-left', 'led-strip-right'];
 /** Bar height floor, so a silent strip still reads as hardware, not a gap. */
 const MIN_SCALE = 0.06;
 const MAX_SCALE = 1;
-const MIN_EMISSIVE = 0.15;
-const MAX_EMISSIVE = 5.5;
+/** Colour multiplier. Above 1 the bar blows past its base hue and reads as hot. */
+const MIN_BRIGHTNESS = 0.12;
+const MAX_BRIGHTNESS = 2.6;
 /** Per-second rates. Bars snap up on a transient and fall back smoothly. */
 const ATTACK = 26;
 const RELEASE = 7;
@@ -41,9 +48,11 @@ const RELEASE = 7;
 const USABLE_SPECTRUM = 0.55;
 
 interface Strip {
-  bars: Mesh[];
+  mesh: InstancedMesh;
   /** Smoothed level per bar. Preallocated: update() must not allocate. */
   levels: Float32Array;
+  /** Base RGB per bar, flattened. Multiplied by brightness into instanceColor. */
+  baseColors: Float32Array;
   /** Where in the spectrum this strip starts reading, 0 = bass. */
   bandOffset: number;
 }
@@ -65,60 +74,80 @@ export class AudioReactiveLedSystem extends createSystem({}) {
 
     const spectrum = this.music?.getFrequencyData();
     for (const strip of this.strips) {
-      const { bars, levels, bandOffset } = strip;
-      for (let i = 0; i < bars.length; i += 1) {
+      const { mesh, levels, baseColors, bandOffset } = strip;
+      const matrices = mesh.instanceMatrix.array as Float32Array;
+      const colors = mesh.instanceColor?.array as Float32Array | undefined;
+      const count = levels.length;
+
+      for (let i = 0; i < count; i += 1) {
         const target =
-          spectrum == null
-            ? 0
-            : sampleBand(spectrum, i, bars.length, bandOffset);
+          spectrum == null ? 0 : sampleBand(spectrum, i, count, bandOffset);
         // Fast attack, slow release: the classic equaliser feel, and it hides
         // the coarse bin resolution of a 64-point FFT.
         const rate = target > levels[i] ? ATTACK : RELEASE;
-        levels[i] = MathUtils.damp(levels[i], target, rate, delta);
-        applyBar(bars[i], levels[i]);
+        const level = MathUtils.damp(levels[i], target, rate, delta);
+        levels[i] = level;
+
+        const clamped = level < 0 ? 0 : level > 1 ? 1 : level;
+        // Element 5 of a column-major 4x4 is the Y scale. Everything else in
+        // this instance's matrix was set once, at authoring time.
+        matrices[i * 16 + 5] = MIN_SCALE + clamped * (MAX_SCALE - MIN_SCALE);
+
+        if (colors != null) {
+          // Squared so quiet passages stay dark and peaks bloom, rather than the
+          // whole row sitting at a flat mid-glow.
+          const brightness =
+            MIN_BRIGHTNESS + clamped * clamped * (MAX_BRIGHTNESS - MIN_BRIGHTNESS);
+          colors[i * 3] = baseColors[i * 3] * brightness;
+          colors[i * 3 + 1] = baseColors[i * 3 + 1] * brightness;
+          colors[i * 3 + 2] = baseColors[i * 3 + 2] * brightness;
+        }
+      }
+
+      mesh.instanceMatrix.needsUpdate = true;
+      if (mesh.instanceColor != null) {
+        mesh.instanceColor.needsUpdate = true;
       }
     }
   }
 
   /** The level loads after init(), so strips are resolved on the first frame. */
   private resolve(): void {
+    const color = new Color();
     for (let s = 0; s < STRIP_NODE_IDS.length; s += 1) {
       const root = this.world.getSceneObject(STRIP_NODE_IDS[s]);
       if (root == null) {
         continue;
       }
-      const bars: Mesh[] = [];
+      let mesh: InstancedMesh | undefined;
       root.traverse((object: Object3D) => {
-        if (object instanceof Mesh && object.name.startsWith(BAR_NAME_PREFIX)) {
-          bars.push(object);
+        if (object instanceof InstancedMesh && object.name === BAR_MESH_NAME) {
+          mesh = object;
         }
       });
-      if (bars.length === 0) {
+      if (mesh == null) {
         continue;
       }
-      bars.sort((a, b) => barIndex(a.name) - barIndex(b.name));
+
+      const count = mesh.count;
+      const baseColors = new Float32Array(count * 3);
+      for (let i = 0; i < count; i += 1) {
+        color.set(BAR_COLORS[i % BAR_COLORS.length]);
+        baseColors[i * 3] = color.r;
+        baseColors[i * 3 + 1] = color.g;
+        baseColors[i * 3 + 2] = color.b;
+      }
+
       this.strips.push({
-        bars,
-        levels: new Float32Array(bars.length),
+        mesh,
+        levels: new Float32Array(count),
+        baseColors,
         // Offset the second strip so the two rows do not mirror each other.
         bandOffset: s === 0 ? 0 : 0.5,
       });
     }
     this.resolved = this.strips.length > 0;
   }
-}
-
-function applyBar(bar: Mesh, level: number): void {
-  const clamped = Math.min(Math.max(level, 0), 1);
-  bar.scale.y = MIN_SCALE + clamped * (MAX_SCALE - MIN_SCALE);
-  const material = bar.material as MeshStandardMaterial;
-  // emissiveIntensity is a plain uniform: writing it never recompiles.
-  material.emissiveIntensity =
-    MIN_EMISSIVE + clamped * clamped * (MAX_EMISSIVE - MIN_EMISSIVE);
-}
-
-function barIndex(name: string): number {
-  return Number.parseInt(name.slice(BAR_NAME_PREFIX.length), 10) || 0;
 }
 
 /**

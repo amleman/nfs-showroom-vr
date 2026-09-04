@@ -340,64 +340,6 @@
     },
     {
       "components": {
-        "com.iwsdk.components.SpotLight": {
-          "angleDeg": 25,
-          "castShadow": false,
-          "color": [
-            1,
-            0.8784313725490196,
-            0.7411764705882353,
-            1
-          ],
-          "decay": 2,
-          "distance": 14,
-          "intensity": 180,
-          "penumbra": 0.9
-        }
-      },
-      "id": "fill-front",
-      "name": "Fill light (front)",
-      "transform": {
-        "position": [
-          -3.3,
-          2.2,
-          6.5
-        ],
-        "rotationDeg": [
-          -20.7,
-          0,
-          0
-        ],
-        "scale": 1
-      }
-    },
-    {
-      "components": {
-        "com.iwsdk.components.PointLight": {
-          "castShadow": false,
-          "color": [
-            1,
-            0.72,
-            0.42,
-            1
-          ],
-          "decay": 2,
-          "distance": 10,
-          "intensity": 85
-        }
-      },
-      "id": "bay-left-glow",
-      "name": "Bay glow (left)",
-      "transform": {
-        "position": [
-          -8.8,
-          3.2,
-          -2
-        ]
-      }
-    },
-    {
-      "components": {
         "com.iwsdk.components.PointLight": {
           "castShadow": false,
           "color": [
@@ -408,7 +350,7 @@
           ],
           "decay": 2,
           "distance": 12,
-          "intensity": 110
+          "intensity": 140
         }
       },
       "id": "bay-back-glow",
@@ -430,7 +372,7 @@
             0.1,
             1
           ],
-          "intensity": 0.28,
+          "intensity": 0.36,
           "skyColor": [
             0.42,
             0.36,
@@ -620,6 +562,10 @@
       }
     }
   ],
+  "environment": {
+    "shadows": true,
+    "shadowMapType": "pcf"
+  },
   "player": {
     "transform": {
       "position": [

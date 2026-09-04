@@ -14,6 +14,7 @@ import { CarTurntableSystem } from './car-turntable.js';
 import { MusicPanelSystem } from './music-panel.js';
 import { MusicPlayerSystem } from './music-player.js';
 import { PanelSystem } from './panel.js';
+import { RenderTuningSystem } from './render-tuning.js';
 import { RobotSystem } from './robot.js';
 import {
   TurnPivotCaptureSystem,
@@ -37,6 +38,10 @@ World.create(
   world.registerSystem(AudioReactiveLedSystem);
 
   world.registerSystem(PanelSystem);
+
+  // After the swapper and turntable: it subscribes to both to decide when the
+  // shadow map is worth rebuilding.
+  world.registerSystem(RenderTuningSystem);
 
   // Bracket the built-in TurnSystem (priority 0) so turning pivots on the head
   // instead of the play-space origin.

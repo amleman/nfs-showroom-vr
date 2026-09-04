@@ -2,9 +2,10 @@
  * Cycles the showroom's hero vehicle, loading each model on demand and holding
  * only a bounded number in memory.
  *
- * The catalog is ~680k triangles and ~145 MB of source. Keeping it all resident
- * is not an option on a standalone headset, but neither is discarding every car
- * the instant you leave it — Prev/Next ping-pong would re-download each time.
+ * Even after `npm run models` shrinks the catalog to fit a headset it is ~440 MB
+ * of texture memory across eight cars. Keeping it all resident is not an option
+ * on a standalone device, but neither is discarding every car the instant you
+ * leave it — Prev/Next ping-pong would re-download each time.
  *
  * So residency is an LRU of {@link RESIDENT_LIMIT} cars. A JS `Map` iterates in
  * insertion order, which is exactly an LRU queue: re-inserting on access moves an
@@ -21,6 +22,7 @@ import {
   InputComponent,
   LoopOnce,
   MathUtils,
+  Mesh,
   signal,
   type AnimationAction,
   type AnimationClip,
@@ -38,8 +40,9 @@ const MOUNT_NODE_ID = 'car-mount';
 const DECK_Y = 0.17;
 /**
  * Cars kept in memory. Two means stepping back and forth between neighbours is
- * instant while at most two texture sets are resident; raise it only if you have
- * headroom measured on the device, not on desktop.
+ * instant while at most two texture sets are resident — a worst-case pair of
+ * ~186 MB, against roughly 1 GB of headroom for the whole page on a Quest 3.
+ * Raise it only against numbers measured on the device, not on desktop.
  */
 const RESIDENT_LIMIT = 2;
 /**
@@ -167,6 +170,7 @@ export class CarSwapperSystem extends createSystem({}) {
         console.warn(`[CarSwapper] "${entry.label}" has no visible geometry`);
       }
       polishCarMaterials(resident.scene);
+      castShadows(resident.scene);
       this.loading.value = false;
     } else if (token !== this.loadToken) {
       return;
@@ -176,10 +180,43 @@ export class CarSwapperSystem extends createSystem({}) {
     this.residents.delete(entry.assetId);
     this.residents.set(entry.assetId, resident);
 
-    mount.add(resident.scene);
+    await this.warmShaders(resident.scene, mount);
+    // Warming yields to the event loop, so a swap may have started meanwhile.
+    if (token !== this.loadToken) {
+      resident.scene.removeFromParent();
+      return;
+    }
+    resident.scene.visible = true;
+
     this.mounted = resident.scene;
     this.startAnimations(resident);
     this.evictBeyondLimit();
+  }
+
+  /**
+   * Compile the car's shaders before it is on screen.
+   *
+   * three.js compiles a material the first frame it is drawn. A car arrives with
+   * forty to eighty of them, so mounting one otherwise spends that whole compile
+   * inside a single frame — a hitch landing exactly on the reveal, and a far
+   * worse one on a headset than on a desktop GPU. `compileAsync` moves it into
+   * the load the player is already waiting through.
+   *
+   * The car is parented but hidden while this runs: `compile` walks materials
+   * with `traverse` (so hidden meshes still compile) but gathers lights from the
+   * target scene with `traverseVisible`, which is what makes the compiled
+   * programs match how the car will actually be lit.
+   */
+  private async warmShaders(car: Object3D, mount: Object3D): Promise<void> {
+    car.visible = false;
+    mount.add(car);
+    try {
+      await this.renderer.compileAsync(car, this.world.camera, this.scene);
+    } catch (error) {
+      // Warming is an optimisation. If it fails the car must still appear; the
+      // cost is the hitch this was avoiding.
+      console.warn('[CarSwapper] Shader warm-up failed', error);
+    }
   }
 
   /** Open the doors and hood if they are shut, close them if they are open. */
@@ -285,6 +322,11 @@ export class CarSwapperSystem extends createSystem({}) {
     }
   }
 
+  /** The car currently on the platform, for systems that need its bounds. */
+  get mountedCar(): Object3D | undefined {
+    return this.mounted;
+  }
+
   /** Y on the left hand toggles the doors; E is the browser equivalent. */
   private readDoorToggle(): boolean {
     if (this.input.keyboard.getKeyDown('KeyE')) {
@@ -325,4 +367,22 @@ export class CarSwapperSystem extends createSystem({}) {
     }
     return step;
   }
+}
+
+/**
+ * Let the car drop a shadow on the dais.
+ *
+ * `GLTFLoader` leaves every mesh at `castShadow: false`, and scene-authored
+ * nodes get the flag from their `content.castShadow` — but a car mounted through
+ * `AssetManager` never passes through that path, so until this ran the key
+ * spotlight was rendering a shadow map with no car in it and the car looked like
+ * it was hovering. `receiveShadow` stays off: self-shadowing a car body costs a
+ * second lookup for detail nobody reads at showroom distance.
+ */
+function castShadows(root: Object3D): void {
+  root.traverse((object) => {
+    if ((object as Mesh).isMesh === true) {
+      object.castShadow = true;
+    }
+  });
 }
