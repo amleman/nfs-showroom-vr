@@ -19,6 +19,7 @@ import {
   AssetManager,
   CacheManager,
   createSystem,
+  Group,
   InputComponent,
   LoopOnce,
   MathUtils,
@@ -56,6 +57,21 @@ const RESIDENT_LIMIT = 2;
 const DOOR_OPEN_RATIO = 0.5;
 
 interface ResidentCar {
+  /**
+   * Wrapper carrying the presentation yaw, and what actually gets mounted.
+   *
+   * The yaw cannot live on the model itself. `fitCarToStage` scales so the
+   * measured bounding box is DISPLAY_LENGTH long, and a box measured around an
+   * already-yawed car is bigger than the car — at 30 degrees a 4.6 m target
+   * produced a 4.31 m car, so every vehicle came out a different size depending
+   * on the angle it happened to be posed at. Fitting first and rotating a
+   * wrapper afterwards keeps the fit exact, and rotating about Y leaves a
+   * centred car centred.
+   *
+   * It is also the frame that per-car anchors (seat, ignition, engine) are
+   * authored in, since it turns with the car.
+   */
+  pivot: Object3D;
   scene: Object3D;
   clips: AnimationClip[];
 }
@@ -152,7 +168,11 @@ export class CarSwapperSystem extends createSystem({}) {
       this.loading.value = true;
       try {
         const gltf = await AssetManager.loadGLTFById(entry.assetId);
-        resident = { scene: gltf.scene, clips: gltf.animations ?? [] };
+        resident = {
+          pivot: new Group(),
+          scene: gltf.scene,
+          clips: gltf.animations ?? [],
+        };
       } catch (error) {
         if (token === this.loadToken) {
           console.warn(`[CarSwapper] Could not load "${entry.label}"`, error);
@@ -165,10 +185,15 @@ export class CarSwapperSystem extends createSystem({}) {
         return;
       }
 
-      resident.scene.rotation.y = MathUtils.degToRad(entry.yawDeg);
+      // Fit the model square-on so the scale is measured against the car and not
+      // against a bounding box inflated by its own presentation angle, then let
+      // the pivot carry the yaw.
       if (!fitCarToStage(resident.scene, DECK_Y)) {
         console.warn(`[CarSwapper] "${entry.label}" has no visible geometry`);
       }
+      resident.pivot.name = `car:${entry.assetId}`;
+      resident.pivot.rotation.y = MathUtils.degToRad(entry.yawDeg);
+      resident.pivot.add(resident.scene);
       polishCarMaterials(resident.scene);
       castShadows(resident.scene);
       this.loading.value = false;
@@ -180,15 +205,15 @@ export class CarSwapperSystem extends createSystem({}) {
     this.residents.delete(entry.assetId);
     this.residents.set(entry.assetId, resident);
 
-    await this.warmShaders(resident.scene, mount);
+    await this.warmShaders(resident.pivot, mount);
     // Warming yields to the event loop, so a swap may have started meanwhile.
     if (token !== this.loadToken) {
-      resident.scene.removeFromParent();
+      resident.pivot.removeFromParent();
       return;
     }
-    resident.scene.visible = true;
+    resident.pivot.visible = true;
 
-    this.mounted = resident.scene;
+    this.mounted = resident.pivot;
     this.startAnimations(resident);
     this.evictBeyondLimit();
   }
@@ -314,10 +339,13 @@ export class CarSwapperSystem extends createSystem({}) {
       const assetId = oldest.value;
       const evicted = this.residents.get(assetId);
       this.residents.delete(assetId);
-      if (evicted == null || evicted.scene === this.mounted) {
+      if (evicted == null || evicted.pivot === this.mounted) {
         continue;
       }
+      // The pivot owns no GPU resources of its own; disposing the model under it
+      // is what frees the VRAM, and detaching the pivot drops the whole branch.
       disposeHierarchy(evicted.scene);
+      evicted.pivot.removeFromParent();
       CacheManager.deleteAsset(assetId);
     }
   }

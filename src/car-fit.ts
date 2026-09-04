@@ -22,6 +22,19 @@ export const DISPLAY_LENGTH = 4.6;
  */
 const OVERSIZE_FACTOR = 1.5;
 const FLATNESS_RATIO = 0.05;
+/**
+ * Second, narrower test for the author-signature decals several of these
+ * downloads lay on the floor beside the car. They are single quads of exactly
+ * zero height, but not wide enough to trip OVERSIZE_FACTOR, so they used to
+ * survive and drag the model's centre sideways — the Bugatti sat 16 cm off the
+ * middle of the dais because two of them straddled it.
+ *
+ * Nothing structural on a car is a zero-thickness sheet lying on the ground, so
+ * the test is height against the model's own height, plus proximity to its
+ * floor. Both ratios are deliberately tight: a real undertray has thickness.
+ */
+const SHEET_HEIGHT_RATIO = 0.005;
+const FLOOR_PROXIMITY_RATIO = 0.02;
 
 const meshBox = new Box3();
 const bounds = new Box3();
@@ -122,20 +135,40 @@ function hideGroundPlanes(model: Object3D): void {
   }
 
   const median = [...spans].sort((a, b) => a - b)[Math.floor(spans.length / 2)];
+
+  // Reference height for the sheet test. Measured over everything, junk
+  // included — it only has to be the right order of magnitude.
+  bounds.makeEmpty();
+  for (const mesh of meshes) {
+    const geometryBox = mesh.geometry.boundingBox;
+    if (geometryBox != null) {
+      bounds.union(meshBox.copy(geometryBox).applyMatrix4(mesh.matrixWorld));
+    }
+  }
+  bounds.getSize(size);
+  const totalHeight = size.y;
+  const floorY = bounds.min.y;
+
   for (let i = 0; i < meshes.length; i += 1) {
     const mesh = meshes[i];
     const span = spans[i];
-    if (span <= median * OVERSIZE_FACTOR || span === 0) {
+    if (span === 0) {
       continue;
     }
-    mesh.geometry.computeBoundingBox();
     const geometryBox = mesh.geometry.boundingBox;
     if (geometryBox == null) {
       continue;
     }
     meshBox.copy(geometryBox).applyMatrix4(mesh.matrixWorld);
     meshBox.getSize(size);
-    if (size.y < span * FLATNESS_RATIO) {
+
+    const oversizedAndFlat =
+      span > median * OVERSIZE_FACTOR && size.y < span * FLATNESS_RATIO;
+    const sheetOnTheFloor =
+      size.y <= totalHeight * SHEET_HEIGHT_RATIO &&
+      meshBox.min.y <= floorY + totalHeight * FLOOR_PROXIMITY_RATIO;
+
+    if (oversizedAndFlat || sheetOnTheFloor) {
       mesh.visible = false;
     }
   }
