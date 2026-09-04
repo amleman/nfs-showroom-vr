@@ -106,13 +106,14 @@ and filter the JSON instead.
 ## Skills
 
 Scene composition, UI authoring, physics, depth occlusion, grab and ray
-interaction testing, ECS frame-stepping, and end-to-end planning each have a
-skill under `.claude/skills/`. Their descriptions handle routing, so they are not
-restated here.
+interaction testing, ECS frame-stepping, art direction, and end-to-end planning
+each have a skill under `.claude/skills/`. Their descriptions handle routing, so
+they are not restated here.
 
 The failure worth guarding against is improvising a domain that already has a
 skill because the naive approach looks tractable. Before hand-authoring scene
-JSON, a UIKitML panel, or a physics body, invoke the skill.
+JSON, a UIKitML panel, a physics body, or a lighting and material pass, invoke
+the skill.
 
 ## Layout
 
