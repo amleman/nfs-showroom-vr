@@ -30,6 +30,12 @@ export class CarTurntableSystem extends createSystem({}) {
   /** True while a revolution is in progress. The UI subscribes to disable its button. */
   readonly spinning = signal(false);
 
+  /**
+   * Suspends the spin control. Set while the player is in the driver's seat: the
+   * platform turning under them is a comfort problem, not a feature.
+   */
+  inputSuspended = false;
+
   private turntable: Object3D | undefined;
   private baseYaw = 0;
   private elapsed = 0;
@@ -49,7 +55,7 @@ export class CarTurntableSystem extends createSystem({}) {
   }
 
   update(delta: number): void {
-    if (this.readSpinRequest()) {
+    if (!this.inputSuspended && this.readSpinRequest()) {
       this.spin();
     }
     if (!this.spinning.peek()) {

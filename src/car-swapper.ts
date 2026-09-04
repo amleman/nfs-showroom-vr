@@ -30,7 +30,7 @@ import {
   type Object3D,
   type StatefulGamepad,
 } from '@iwsdk/core';
-import { CAR_CATALOG } from './car-catalog.js';
+import { CAR_CATALOG, type CarEntry } from './car-catalog.js';
 import { polishCarMaterials } from './car-finish.js';
 import { fitCarToStage } from './car-fit.js';
 import { disposeHierarchy } from './gpu-memory.js';
@@ -113,7 +113,12 @@ export class CarSwapperSystem extends createSystem({}) {
       }
       return;
     }
+    // The mixer keeps running while seated — the doors may be mid-swing when the
+    // player climbs in — but no new input is taken.
     this.updateDoors(delta);
+    if (this.inputSuspended) {
+      return;
+    }
     if (this.readDoorToggle()) {
       this.toggleDoors();
     }
@@ -350,10 +355,25 @@ export class CarSwapperSystem extends createSystem({}) {
     }
   }
 
-  /** The car currently on the platform, for systems that need its bounds. */
+  /**
+   * The pivot of the car currently on the platform. Per-car anchors are authored
+   * in this object's frame, so it is what turns them into world positions.
+   */
   get mountedCar(): Object3D | undefined {
     return this.mounted;
   }
+
+  /** Catalog entry for the car on the platform, or undefined when empty. */
+  get activeEntry(): CarEntry | undefined {
+    return CAR_CATALOG[this.activeIndex];
+  }
+
+  /**
+   * Suspends controller input for the carousel and the doors. Set while the
+   * player is in the driver's seat, where B belongs to getting out again and
+   * changing the car under them would leave them floating.
+   */
+  inputSuspended = false;
 
   /** Y on the left hand toggles the doors; E is the browser equivalent. */
   private readDoorToggle(): boolean {
@@ -383,17 +403,10 @@ export class CarSwapperSystem extends createSystem({}) {
    * never change the car by accident.
    */
   private readGamepad(pad: StatefulGamepad | undefined): number {
-    if (pad == null) {
-      return 0;
-    }
-    let step = 0;
-    if (pad.getButtonDown(InputComponent.A_Button)) {
-      step += 1;
-    }
-    if (pad.getButtonDown(InputComponent.B_Button)) {
-      step -= 1;
-    }
-    return step;
+    // A only. B used to step backwards, but it now gets the player in and out of
+    // the driver's seat, which is worth more than a binding the panel already
+    // provides: Prev on the selector is the way back through the carousel.
+    return pad?.getButtonDown(InputComponent.A_Button) === true ? 1 : 0;
   }
 }
 
