@@ -31,6 +31,7 @@ import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'n
 import { basename, dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
+import { readModel, readUri, writeGLB } from './glb.mjs';
 
 const PROJECT_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const GLTF_DIR = join(PROJECT_ROOT, 'public', 'gltf');
@@ -50,10 +51,6 @@ const DATA_MAX = 512;
 /** WebP quality. Data maps get more because banding in a normal map shows. */
 const COLOR_QUALITY = 82;
 const DATA_QUALITY = 90;
-
-const GLB_MAGIC = 0x46546c67;
-const CHUNK_JSON = 0x4e4f534a;
-const CHUNK_BIN = 0x004e4942;
 
 /** Models to process: everything the manifest can point at. */
 function collectInputs() {
@@ -89,120 +86,6 @@ function collectInputs() {
     inputs.push({ file: soundSystem, out: 'sound_system.glb' });
   }
   return inputs;
-}
-
-// --- glTF/GLB container ------------------------------------------------------
-
-/** Read either container into `{ json, bin }` with every buffer resolved. */
-function readModel(file) {
-  const buf = readFileSync(file);
-  if (extname(file).toLowerCase() === '.glb') {
-    const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-    if (view.getUint32(0, true) !== GLB_MAGIC) {
-      throw new Error('not a GLB');
-    }
-    const total = view.getUint32(8, true);
-    let offset = 12;
-    let json = null;
-    let bin = Buffer.alloc(0);
-    while (offset < total) {
-      const length = view.getUint32(offset, true);
-      const type = view.getUint32(offset + 4, true);
-      const start = offset + 8;
-      if (type === CHUNK_JSON) {
-        json = JSON.parse(buf.subarray(start, start + length).toString('utf8'));
-      } else if (type === CHUNK_BIN) {
-        bin = buf.subarray(start, start + length);
-      }
-      offset = start + length;
-    }
-    return { json, bin };
-  }
-
-  const json = JSON.parse(buf.toString('utf8'));
-  // Separate .bin files (and data: URIs) are concatenated into one buffer, and
-  // every bufferView is rebased onto it.
-  const parts = [];
-  const bases = [];
-  let cursor = 0;
-  for (const buffer of json.buffers ?? []) {
-    const bytes = buffer.uri == null ? Buffer.alloc(0) : readUri(buffer.uri, file);
-    bases.push(cursor);
-    parts.push(bytes);
-    cursor += align4(bytes.length);
-    if (bytes.length % 4 !== 0) {
-      parts.push(Buffer.alloc(4 - (bytes.length % 4)));
-    }
-  }
-  for (const bufferView of json.bufferViews ?? []) {
-    bufferView.byteOffset = (bufferView.byteOffset ?? 0) + bases[bufferView.buffer ?? 0];
-    bufferView.buffer = 0;
-  }
-  return { json, bin: Buffer.concat(parts) };
-}
-
-function readUri(uri, fromFile) {
-  if (uri.startsWith('data:')) {
-    return Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64');
-  }
-  return readFileSync(resolve(dirname(fromFile), decodeURIComponent(uri)));
-}
-
-/**
- * Rebuild the binary chunk so bufferViews stay contiguous and correctly aligned.
- *
- * Image views are replaced with their re-encoded bytes; every other view is
- * copied verbatim, which is what keeps accessor `byteOffset`s and `byteStride`
- * valid without rewriting a single accessor.
- */
-function writeGLB(json, bin, replacements) {
-  const parts = [];
-  let cursor = 0;
-  for (let i = 0; i < (json.bufferViews ?? []).length; i += 1) {
-    const view = json.bufferViews[i];
-    const replacement = replacements.get(i);
-    const bytes =
-      replacement ??
-      bin.subarray(view.byteOffset ?? 0, (view.byteOffset ?? 0) + view.byteLength);
-    const padding = align4(cursor) - cursor;
-    if (padding > 0) {
-      parts.push(Buffer.alloc(padding));
-      cursor += padding;
-    }
-    view.byteOffset = cursor;
-    view.byteLength = bytes.length;
-    view.buffer = 0;
-    if (replacement != null) {
-      // An image view carries no vertex layout; a stale stride would be invalid.
-      delete view.byteStride;
-    }
-    parts.push(bytes);
-    cursor += bytes.length;
-  }
-  const binChunk = Buffer.concat(parts);
-  const binPadded = Buffer.concat([binChunk, Buffer.alloc(align4(binChunk.length) - binChunk.length)]);
-
-  json.buffers = [{ byteLength: binChunk.length }];
-  const jsonChunk = Buffer.from(JSON.stringify(json), 'utf8');
-  const jsonPadded = Buffer.concat([
-    jsonChunk,
-    Buffer.alloc(align4(jsonChunk.length) - jsonChunk.length, 0x20),
-  ]);
-
-  const header = Buffer.alloc(12);
-  header.writeUInt32LE(GLB_MAGIC, 0);
-  header.writeUInt32LE(2, 4);
-  header.writeUInt32LE(12 + 8 + jsonPadded.length + 8 + binPadded.length, 8);
-
-  const jsonHeader = Buffer.alloc(8);
-  jsonHeader.writeUInt32LE(jsonPadded.length, 0);
-  jsonHeader.writeUInt32LE(CHUNK_JSON, 4);
-
-  const binHeader = Buffer.alloc(8);
-  binHeader.writeUInt32LE(binPadded.length, 0);
-  binHeader.writeUInt32LE(CHUNK_BIN, 4);
-
-  return Buffer.concat([header, jsonHeader, jsonPadded, binHeader, binPadded]);
 }
 
 // --- texture classification --------------------------------------------------
@@ -343,7 +226,6 @@ async function optimize(input) {
 function vramBytes(width, height) {
   return (width ?? 0) * (height ?? 0) * 4 * 1.3333;
 }
-const align4 = (n) => (n + 3) & ~3;
 const sha = (buf) => createHash('sha1').update(buf).digest('hex');
 const stem = (name) => name.slice(0, -extname(name).length);
 const mb = (bytes) => `${(bytes / 1048576).toFixed(1)} MB`;

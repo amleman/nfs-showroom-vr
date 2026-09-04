@@ -18,7 +18,8 @@
     "predev:runtime": "node scripts/generate-playlist.mjs && node scripts/optimize-models.mjs",
     "prebuild": "node scripts/generate-playlist.mjs && node scripts/optimize-models.mjs",
     "models": "node scripts/optimize-models.mjs",
-    "models:force": "node scripts/optimize-models.mjs --force"
+    "models:force": "node scripts/optimize-models.mjs --force",
+    "inspect": "node scripts/inspect-model.mjs"
   },
   "dependencies": {
     "@iwsdk/core": "0.5.3",
