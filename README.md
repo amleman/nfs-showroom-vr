@@ -63,10 +63,19 @@ a browser cannot list a directory, and files in `public/` are not Vite modules.
 
 | Input | Action |
 | --- | --- |
-| Right **A** / **B** | Next / previous car |
+| Right **A** | Next car |
+| Right **B** | Get in / out of the driver's seat |
 | Left **X** | Spin the turntable |
 | Left **Y** | Open / close the doors |
 | Thumbsticks | Movement and turning (locomotion) |
 | Panels | Car selection, spin, and music transport |
 
-In a desktop browser: **←/→** change car, **R** spins, **E** toggles the doors.
+Previous car lives on the selector panel's **Prev** button — B is worth more as
+the way into the car.
+
+While you are sitting in a car the sticks are disabled, so you stay put and look
+around with your head; B gets you out again. Not every vehicle can be sat in,
+only the ones whose cabin is actually modelled.
+
+In a desktop browser: **←/→** change car, **R** spins, **E** toggles the doors,
+**B** takes the seat.

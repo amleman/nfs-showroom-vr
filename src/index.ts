@@ -7,6 +7,7 @@
 
 import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
+import { CarSeatSystem } from './car-seat.js';
 import { CarSelectorPanelSystem } from './car-selector-panel.js';
 import { CarSwapperSystem } from './car-swapper.js';
 import { AudioReactiveLedSystem } from './audio-reactive-led.js';
@@ -31,6 +32,9 @@ World.create(
   world.registerSystem(CarSwapperSystem);
   world.registerSystem(CarTurntableSystem);
   world.registerSystem(CarSelectorPanelSystem);
+
+  // After the swapper and turntable, whose input it suspends while seated.
+  world.registerSystem(CarSeatSystem);
 
   // Player before the panel and the LEDs; both read its signals/analyser.
   world.registerSystem(MusicPlayerSystem);

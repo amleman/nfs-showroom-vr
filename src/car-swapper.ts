@@ -19,6 +19,7 @@ import {
   AssetManager,
   CacheManager,
   createSystem,
+  Group,
   InputComponent,
   LoopOnce,
   MathUtils,
@@ -29,7 +30,7 @@ import {
   type Object3D,
   type StatefulGamepad,
 } from '@iwsdk/core';
-import { CAR_CATALOG } from './car-catalog.js';
+import { CAR_CATALOG, type CarEntry } from './car-catalog.js';
 import { polishCarMaterials } from './car-finish.js';
 import { fitCarToStage } from './car-fit.js';
 import { disposeHierarchy } from './gpu-memory.js';
@@ -56,6 +57,21 @@ const RESIDENT_LIMIT = 2;
 const DOOR_OPEN_RATIO = 0.5;
 
 interface ResidentCar {
+  /**
+   * Wrapper carrying the presentation yaw, and what actually gets mounted.
+   *
+   * The yaw cannot live on the model itself. `fitCarToStage` scales so the
+   * measured bounding box is DISPLAY_LENGTH long, and a box measured around an
+   * already-yawed car is bigger than the car — at 30 degrees a 4.6 m target
+   * produced a 4.31 m car, so every vehicle came out a different size depending
+   * on the angle it happened to be posed at. Fitting first and rotating a
+   * wrapper afterwards keeps the fit exact, and rotating about Y leaves a
+   * centred car centred.
+   *
+   * It is also the frame that per-car anchors (seat, ignition, engine) are
+   * authored in, since it turns with the car.
+   */
+  pivot: Object3D;
   scene: Object3D;
   clips: AnimationClip[];
 }
@@ -97,7 +113,12 @@ export class CarSwapperSystem extends createSystem({}) {
       }
       return;
     }
+    // The mixer keeps running while seated — the doors may be mid-swing when the
+    // player climbs in — but no new input is taken.
     this.updateDoors(delta);
+    if (this.inputSuspended) {
+      return;
+    }
     if (this.readDoorToggle()) {
       this.toggleDoors();
     }
@@ -152,7 +173,11 @@ export class CarSwapperSystem extends createSystem({}) {
       this.loading.value = true;
       try {
         const gltf = await AssetManager.loadGLTFById(entry.assetId);
-        resident = { scene: gltf.scene, clips: gltf.animations ?? [] };
+        resident = {
+          pivot: new Group(),
+          scene: gltf.scene,
+          clips: gltf.animations ?? [],
+        };
       } catch (error) {
         if (token === this.loadToken) {
           console.warn(`[CarSwapper] Could not load "${entry.label}"`, error);
@@ -165,10 +190,15 @@ export class CarSwapperSystem extends createSystem({}) {
         return;
       }
 
-      resident.scene.rotation.y = MathUtils.degToRad(entry.yawDeg);
+      // Fit the model square-on so the scale is measured against the car and not
+      // against a bounding box inflated by its own presentation angle, then let
+      // the pivot carry the yaw.
       if (!fitCarToStage(resident.scene, DECK_Y)) {
         console.warn(`[CarSwapper] "${entry.label}" has no visible geometry`);
       }
+      resident.pivot.name = `car:${entry.assetId}`;
+      resident.pivot.rotation.y = MathUtils.degToRad(entry.yawDeg);
+      resident.pivot.add(resident.scene);
       polishCarMaterials(resident.scene);
       castShadows(resident.scene);
       this.loading.value = false;
@@ -180,15 +210,15 @@ export class CarSwapperSystem extends createSystem({}) {
     this.residents.delete(entry.assetId);
     this.residents.set(entry.assetId, resident);
 
-    await this.warmShaders(resident.scene, mount);
+    await this.warmShaders(resident.pivot, mount);
     // Warming yields to the event loop, so a swap may have started meanwhile.
     if (token !== this.loadToken) {
-      resident.scene.removeFromParent();
+      resident.pivot.removeFromParent();
       return;
     }
-    resident.scene.visible = true;
+    resident.pivot.visible = true;
 
-    this.mounted = resident.scene;
+    this.mounted = resident.pivot;
     this.startAnimations(resident);
     this.evictBeyondLimit();
   }
@@ -314,18 +344,36 @@ export class CarSwapperSystem extends createSystem({}) {
       const assetId = oldest.value;
       const evicted = this.residents.get(assetId);
       this.residents.delete(assetId);
-      if (evicted == null || evicted.scene === this.mounted) {
+      if (evicted == null || evicted.pivot === this.mounted) {
         continue;
       }
+      // The pivot owns no GPU resources of its own; disposing the model under it
+      // is what frees the VRAM, and detaching the pivot drops the whole branch.
       disposeHierarchy(evicted.scene);
+      evicted.pivot.removeFromParent();
       CacheManager.deleteAsset(assetId);
     }
   }
 
-  /** The car currently on the platform, for systems that need its bounds. */
+  /**
+   * The pivot of the car currently on the platform. Per-car anchors are authored
+   * in this object's frame, so it is what turns them into world positions.
+   */
   get mountedCar(): Object3D | undefined {
     return this.mounted;
   }
+
+  /** Catalog entry for the car on the platform, or undefined when empty. */
+  get activeEntry(): CarEntry | undefined {
+    return CAR_CATALOG[this.activeIndex];
+  }
+
+  /**
+   * Suspends controller input for the carousel and the doors. Set while the
+   * player is in the driver's seat, where B belongs to getting out again and
+   * changing the car under them would leave them floating.
+   */
+  inputSuspended = false;
 
   /** Y on the left hand toggles the doors; E is the browser equivalent. */
   private readDoorToggle(): boolean {
@@ -355,17 +403,10 @@ export class CarSwapperSystem extends createSystem({}) {
    * never change the car by accident.
    */
   private readGamepad(pad: StatefulGamepad | undefined): number {
-    if (pad == null) {
-      return 0;
-    }
-    let step = 0;
-    if (pad.getButtonDown(InputComponent.A_Button)) {
-      step += 1;
-    }
-    if (pad.getButtonDown(InputComponent.B_Button)) {
-      step -= 1;
-    }
-    return step;
+    // A only. B used to step backwards, but it now gets the player in and out of
+    // the driver's seat, which is worth more than a binding the panel already
+    // provides: Prev on the selector is the way back through the carousel.
+    return pad?.getButtonDown(InputComponent.A_Button) === true ? 1 : 0;
   }
 }
 
