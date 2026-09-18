@@ -7,6 +7,11 @@ Deeper material is path-scoped in `.claude/rules/` and loads automatically when
 you touch the matching files. `AGENTS.md` is the vendor-neutral copy for other
 agents; this file is the one Claude Code reads.
 
+**Starting cold on this project? Read `contexto.md` first.** This file covers
+how to work with IWSDK; `contexto.md` covers *this* application — what it does,
+how it is put together, the per-car data model, the numbers behind the
+performance work, and the traps that already cost a session each.
+
 ## What is not standard Vite
 
 **`iwsdk.config.json` is the project authority, not `vite.config.ts`.** It selects
