@@ -439,9 +439,14 @@ export const MACHINE_CATALOG: readonly MachineEntry[] = [
       {
         id: 'remolque',
         kind: 'tec',
-        title: 'Enganche de remolque',
+        // The marker landed on the front recovery hooks, which is where the
+        // model actually has them, so the text covers both ends of the vehicle
+        // instead of the marker being moved. The distinction it draws is the
+        // point: a recovery hook is not a towing point, and treating it as one
+        // is a routine cause of incident.
+        title: 'Arrastre y puntos de recuperacion',
         anchor: [0, 0.2, -0.95],
-        body: 'Capacidad de arrastre de 8.4 t con enganche de quinta rueda. Verifique la carga vertical sobre el enganche: por encima del 15 % del peso remolcado el eje delantero pierde adherencia.',
+        body: 'Los ganchos delanteros son puntos de RECUPERACION: tiro recto y en linea con el eje del vehiculo, nunca para remolcar ni para izar. La capacidad de arrastre de 8.4 t corresponde al enganche trasero de quinta rueda. Verifique la carga vertical sobre ese enganche: por encima del 15 % del peso remolcado el eje delantero pierde adherencia.',
       },
       {
         id: 'servicio',
