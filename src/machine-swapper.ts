@@ -341,23 +341,30 @@ export class MachineSwapperSystem extends createSystem({}) {
     return MACHINE_CATALOG[this.activeIndex];
   }
 
-  /** Y on the left hand runs the machine's cycle; E is the browser equivalent. */
+  /** Y on the left hand runs the machine's cycle; F is the browser equivalent. */
   private readCycleToggle(): boolean {
-    if (this.input.keyboard.getKeyDown('KeyE')) {
+    if (this.input.keyboard.getKeyDown('KeyF')) {
       return true;
     }
     const left: StatefulGamepad | undefined = this.input.xr.gamepads.left;
     return left?.getButtonDown(InputComponent.Y_Button) === true;
   }
 
-  /** Net carousel steps requested this frame. */
+  /**
+   * Net carousel steps requested this frame.
+   *
+   * Q and E, not the arrow keys. Enabling `locomotion.browserControls` gave the
+   * arrows to strafing, alongside WASD, which is what lets somebody walk the
+   * exhibit in a plain browser — and a visitor pressing right to look around the
+   * truck should not find themselves looking at a different truck.
+   */
   private readInput(): number {
     let step = 0;
     const keyboard = this.input.keyboard;
-    if (keyboard.getKeyDown('ArrowRight')) {
+    if (keyboard.getKeyDown('KeyE')) {
       step += 1;
     }
-    if (keyboard.getKeyDown('ArrowLeft')) {
+    if (keyboard.getKeyDown('KeyQ')) {
       step -= 1;
     }
     return step + this.readGamepad(this.input.xr.gamepads.right);

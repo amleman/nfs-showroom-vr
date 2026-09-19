@@ -37,7 +37,11 @@
     },
     "features": {
       "locomotion": {
-        "useWorker": true
+        "useWorker": true,
+        "browserControls": {
+          "keyboard": true,
+          "gamepad": true
+        }
       },
       "grabbing": true,
       "physics": false,

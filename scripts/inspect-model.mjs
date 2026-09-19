@@ -43,12 +43,12 @@ const io = new NodeIO().registerExtensions(ALL_EXTENSIONS);
  */
 const PLAN = {
   dump_truck: { realHeight: 7.9, alignYawDeg: 0 },
-  excavator_cat: { realHeight: 3.9, alignYawDeg: 0 },
+  excavator_cat: { realHeight: 5.07, alignYawDeg: 0 },
   jcb_backhoe_loader: { realHeight: 3.61, alignYawDeg: 0 },
   black_honey_robotic_arm: { realHeight: 1.45, alignYawDeg: 0 },
   medical_robotic_arm: { realHeight: 2.0, alignYawDeg: 0 },
-  gmc_sierra_hd2500: { realHeight: 2.06, alignYawDeg: 28.8 },
-  simple_tank: { realHeight: 3.0, alignYawDeg: 0 },
+  gmc_sierra_hd2500: { realHeight: 2.37, alignYawDeg: 28.8 },
+  simple_tank: { realHeight: 3.75, alignYawDeg: 0 },
 };
 
 const CORNERS = [0, 1, 2, 3, 4, 5, 6, 7];

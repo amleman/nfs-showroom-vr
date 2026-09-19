@@ -7,13 +7,15 @@
 
 import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
+import { startLanding } from './landing.js';
+import { DesktopNavigationSystem } from './desktop-navigation.js';
 import { EnvironmentSwitcherSystem } from './environment-switcher.js';
+import { HotspotCardSystem } from './hotspot-card.js';
 import { InspectionHotspotSystem } from './inspection-hotspots.js';
 import { InspectionPanelSystem } from './inspection-panel.js';
 import { MachineSelectorPanelSystem } from './machine-selector-panel.js';
 import { MachineSwapperSystem } from './machine-swapper.js';
 import { MachineTurntableSystem } from './machine-turntable.js';
-import { PanelSystem } from './panel.js';
 import { RenderTuningSystem } from './render-tuning.js';
 import { SpecPanelSystem } from './spec-panel.js';
 import {
@@ -32,13 +34,18 @@ World.create(
 
   // After the swapper: the markers are rebuilt from its measured fit.
   world.registerSystem(InspectionHotspotSystem);
+  // After the hotspots and the turntable: it follows the selected marker and
+  // hides itself when that marker is about to be turned away.
+  world.registerSystem(HotspotCardSystem);
 
   // Panels last among the feature systems; every one of them resolves a system
   // above and subscribes to its signals.
   world.registerSystem(MachineSelectorPanelSystem);
   world.registerSystem(SpecPanelSystem);
   world.registerSystem(InspectionPanelSystem);
-  world.registerSystem(PanelSystem);
+
+  // Mouse look for the browser. Dormant until the landing page hands over.
+  world.registerSystem(DesktopNavigationSystem);
 
   // After the swapper and turntable: it subscribes to both to decide when the
   // shadow map is worth rebuilding.
@@ -48,4 +55,8 @@ World.create(
   // instead of the play-space origin.
   world.registerSystem(TurnPivotCaptureSystem, { priority: -10 });
   world.registerSystem(TurnPivotCorrectSystem, { priority: 10 });
+
+  // Last: the landing page hands the camera to DesktopNavigationSystem when the
+  // visitor asks to go in, so that system has to exist by the time it runs.
+  startLanding(world);
 });

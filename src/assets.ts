@@ -83,11 +83,7 @@ export default defineAssets({
   },
 
   // --- Panels ---------------------------------------------------------------
-  'welcome-panel': {
-    url: publicAssetUrl('ui/welcome.uikitml'),
-    type: AssetType.UIKitML,
-    name: 'Panel de bienvenida',
-  },
+  // Entry lives on the 2D landing page now, so there is no welcome panel here.
   'machine-selector': {
     url: publicAssetUrl('ui/machine-selector.uikitml'),
     type: AssetType.UIKitML,
@@ -102,5 +98,10 @@ export default defineAssets({
     url: publicAssetUrl('ui/inspection.uikitml'),
     type: AssetType.UIKitML,
     name: 'Puntos de inspeccion',
+  },
+  'hotspot-card': {
+    url: publicAssetUrl('ui/hotspot-card.uikitml'),
+    type: AssetType.UIKitML,
+    name: 'Tarjeta de punto de inspeccion',
   },
 });

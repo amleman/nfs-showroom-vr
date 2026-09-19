@@ -28,12 +28,14 @@ import {
   Hovered,
   Mesh,
   MeshBasicMaterial,
+  PokeInteractable,
   Pressed,
   RayInteractable,
   signal,
   SphereGeometry,
   Vector3,
   type Entity,
+  type Object3D,
 } from '@iwsdk/core';
 import { InspectionPoint } from './inspection-component.js';
 import { MachineSwapperSystem } from './machine-swapper.js';
@@ -135,6 +137,24 @@ export class InspectionHotspotSystem extends createSystem({
     return index < 0 ? undefined : this.hotspots[index];
   }
 
+  /**
+   * The marker object for the point on show, or undefined.
+   *
+   * `HotspotCardSystem` anchors its floating card and connector to this. It is
+   * handed out as the live object rather than a copied position because the
+   * marker turns with the machine, and a position read once would be stale the
+   * moment the turntable moved.
+   */
+  get selectedMarker(): Object3D | undefined {
+    const index = this.selectedIndex.peek();
+    if (index < 0) {
+      return undefined;
+    }
+    return this.markers.find(
+      (marker) => marker.entity.getValue(InspectionPoint, 'index') === index,
+    )?.entity.object3D;
+  }
+
   private get hotspots(): readonly Hotspot[] {
     return this.swapper?.activeEntry?.hotspots ?? [];
   }
@@ -181,18 +201,13 @@ export class InspectionHotspotSystem extends createSystem({
       this.anchor.set(x * cos + z * sin, ny * fit.height, -x * sin + z * cos);
 
       const color = KIND_COLOR[hotspot.kind];
-      const core = new Mesh(
-        this.coreGeometry,
-        new MeshBasicMaterial({ color: new Color(color), toneMapped: false }),
-      );
-      core.name = `hotspot:${hotspot.id}`;
-      core.scale.setScalar(radius);
-      core.position.copy(this.anchor);
 
-      // A second, larger, mostly transparent shell. It is what makes a 10 cm
-      // marker findable across a 50 m hall, and it is also the ray target:
-      // pointing at a bare 10 cm sphere from ten metres away is not a thing a
-      // visitor should have to be good at.
+      // The halo is the ROOT and the bright core hangs off it, which looks
+      // backwards and is not. `RayInteractable` registers the entity's own
+      // Object3D as the raycast target, and whether that walks into children is
+      // not something to find out in front of a visitor — so the thing being
+      // aimed at is the 60 cm shell, not the 12 cm bead inside it. It is also
+      // what makes the marker findable across a fifty-metre hall.
       const halo = new Mesh(
         this.haloGeometry,
         new MeshBasicMaterial({
@@ -203,16 +218,33 @@ export class InspectionHotspotSystem extends createSystem({
           depthWrite: false,
         }),
       );
-      halo.scale.setScalar(HALO_SCALE);
-      core.add(halo);
+      halo.name = `hotspot:${hotspot.id}`;
+      halo.position.copy(this.anchor);
 
-      const entity = this.world.createTransformEntity(core, {
+      const core = new Mesh(
+        this.coreGeometry,
+        new MeshBasicMaterial({ color: new Color(color), toneMapped: false }),
+      );
+      core.name = `hotspot-core:${hotspot.id}`;
+      // Local to the halo, so the visible bead stays `radius` across whatever
+      // the halo is scaled to for hover and selection.
+      core.scale.setScalar(1 / HALO_SCALE);
+      halo.add(core);
+
+      const baseScale = radius * HALO_SCALE;
+      halo.scale.setScalar(baseScale);
+
+      const entity = this.world.createTransformEntity(halo, {
         parent: this.mountEntity,
       });
       entity.addComponent(InspectionPoint, { index: i });
       entity.addComponent(RayInteractable);
+      // Poke as well as ray. A visitor reading a point is standing at the
+      // machine, and at half a metre a finger or a controller tip is a better
+      // instrument than a ray they have to hold steady.
+      entity.addComponent(PokeInteractable);
 
-      this.markers.push({ entity, halo, baseScale: radius });
+      this.markers.push({ entity, halo, baseScale });
     }
   }
 

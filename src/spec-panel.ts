@@ -23,7 +23,7 @@ const PANEL_NODE_ID = 'machine-specs-panel';
 const SPEC_ROWS = 7;
 const METRIC_ROWS = 4;
 /** Width of the bar track, in the panel's own units. */
-const BAR_TRACK_WIDTH = 382;
+const BAR_TRACK_WIDTH = 452;
 
 const BAR_COLOR = {
   ok: '#24a148',

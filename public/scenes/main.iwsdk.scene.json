@@ -55,14 +55,6 @@
         ],
         "fidelityCeiling": "stylized-static"
       },
-      "target": {
-        "assetPolicy": "manifest-assets",
-        "style": "stylized-pbr",
-        "surfaces": [
-          "browser",
-          "vr"
-        ]
-      },
       "review": {
         "heroView": "hero",
         "lenses": [
@@ -75,6 +67,14 @@
           "hero",
           "quarter",
           "spawn-wide"
+        ]
+      },
+      "target": {
+        "assetPolicy": "manifest-assets",
+        "style": "stylized-pbr",
+        "surfaces": [
+          "browser",
+          "vr"
         ]
       }
     },
@@ -168,12 +168,6 @@
       ]
     },
     "com.iwsdk.components.IBLGradient": {
-      "sky": [
-        0.93,
-        0.95,
-        0.97,
-        1
-      ],
       "equator": [
         0.8,
         0.82,
@@ -186,8 +180,18 @@
         0.49,
         1
       ],
-      "intensity": 1.0
+      "intensity": 1,
+      "sky": [
+        0.93,
+        0.95,
+        0.97,
+        1
+      ]
     }
+  },
+  "environment": {
+    "shadowMapType": "pcf",
+    "shadows": true
   },
   "nodes": [
     {
@@ -262,14 +266,14 @@
               "angleDeg": 42,
               "castShadow": true,
               "color": [
-                1,
-                1,
-                1,
+                0.996078431372549,
+                0.9921568627450981,
+                0.9450980392156862,
                 1
               ],
               "decay": 2,
               "distance": 44,
-              "intensity": 4200,
+              "intensity": 400,
               "penumbra": 0.55,
               "shadowBias": -0.0006,
               "shadowCameraFar": 34,
@@ -299,14 +303,14 @@
               "angleDeg": 48,
               "castShadow": false,
               "color": [
-                0.94,
-                0.96,
+                0.9411764705882353,
+                0.9607843137254902,
                 1,
                 1
               ],
               "decay": 2,
               "distance": 40,
-              "intensity": 2400,
+              "intensity": 300,
               "penumbra": 0.85
             }
           },
@@ -331,14 +335,14 @@
               "angleDeg": 52,
               "castShadow": false,
               "color": [
-                1,
-                1,
-                1,
+                0.8823529411764706,
+                0.9372549019607843,
+                0.996078431372549,
                 1
               ],
               "decay": 2,
               "distance": 34,
-              "intensity": 2600,
+              "intensity": 300,
               "penumbra": 0.9
             }
           },
@@ -361,15 +365,15 @@
           "components": {
             "com.iwsdk.components.HemisphereLight": {
               "groundColor": [
-                0.55,
-                0.56,
-                0.58,
+                0.5490196078431373,
+                0.5607843137254902,
+                0.5803921568627451,
                 1
               ],
-              "intensity": 0.6,
+              "intensity": 0.4,
               "skyColor": [
-                0.95,
-                0.97,
+                0.9490196078431372,
+                0.9686274509803922,
                 1,
                 1
               ]
@@ -407,7 +411,7 @@
               ],
               "decay": 2,
               "distance": 36,
-              "intensity": 3400,
+              "intensity": 400,
               "penumbra": 0.5,
               "shadowBias": -0.0006,
               "shadowCameraFar": 28,
@@ -437,14 +441,14 @@
               "angleDeg": 46,
               "castShadow": false,
               "color": [
-                0.88,
-                0.93,
+                0.8784313725490196,
+                0.9294117647058824,
                 1,
                 1
               ],
               "decay": 2,
               "distance": 34,
-              "intensity": 2000,
+              "intensity": 300,
               "penumbra": 0.8
             }
           },
@@ -510,16 +514,16 @@
       "name": "Puntos de inspeccion",
       "transform": {
         "position": [
-          -1.3,
+          -1.565,
           1.38,
-          14.15
+          14.3221
         ],
         "rotationDeg": [
           0,
-          33.0,
+          33,
           0
         ],
-        "scale": 0.2
+        "scale": 0.3
       }
     },
     {
@@ -534,16 +538,16 @@
       "name": "Selector de equipo",
       "transform": {
         "position": [
-          0.0,
-          1.02,
+          0,
+          0.9199,
           13.75
         ],
         "rotationDeg": [
+          -25,
           0,
-          0.0,
           0
         ],
-        "scale": 0.2
+        "scale": 0.25
       }
     },
     {
@@ -558,53 +562,40 @@
       "name": "Ficha tecnica",
       "transform": {
         "position": [
-          1.3,
+          1.5494,
           1.38,
-          14.15
+          13.8651
         ],
         "rotationDeg": [
           0,
-          -33.0,
+          -33,
           0
         ],
-        "scale": 0.2
+        "scale": 0.32
       }
     },
     {
-      "components": {
-        "RayInteractable": {},
-        "ScreenSpace": {
-          "height": "60%",
-          "left": "20px",
-          "top": "20px",
-          "width": "26vw"
-        }
-      },
       "content": {
-        "asset": "welcome-panel",
+        "asset": "hotspot-card",
         "type": "asset"
       },
-      "id": "welcome-panel",
-      "name": "Panel de bienvenida",
+      "id": "hotspot-card",
+      "name": "Tarjeta de punto",
       "transform": {
         "position": [
           0,
-          1.6,
-          17.8
+          1.5,
+          12
         ],
         "rotationDeg": [
           0,
-          180,
+          0,
           0
         ],
-        "scale": 0.4
+        "scale": 0.13
       }
     }
   ],
-  "environment": {
-    "shadows": true,
-    "shadowMapType": "pcf"
-  },
   "player": {
     "transform": {
       "position": [

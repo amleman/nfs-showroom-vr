@@ -40,7 +40,7 @@
   .panel-root {
     flex-direction: column;
     font-family: "DM Sans";
-    width: 430px;
+    width: 500px;
   }
 
   .block {
@@ -52,11 +52,11 @@
   }
 
   .eyebrow {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
-    line-height: 14px;
-    letter-spacing: 2px;
-    color: #0f62fe;
+    line-height: 16px;
+    letter-spacing: 1.8px;
+    color: #0b4fd4;
   }
 
   .eyebrow:dark {
@@ -65,10 +65,10 @@
 
   .reference {
     margin-top: 6px;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
-    line-height: 18px;
-    color: #6b7280;
+    line-height: 20px;
+    color: #3f4756;
   }
 
   .reference:dark {
@@ -84,7 +84,7 @@
   .dim-cell {
     flex-direction: column;
     align-items: center;
-    width: 118px;
+    width: 140px;
     padding-top: 8px;
     padding-bottom: 8px;
     border-radius: 8px;
@@ -96,10 +96,10 @@
   }
 
   .dim-value {
-    font-size: 19px;
+    font-size: 23px;
     font-weight: 700;
-    line-height: 22px;
-    color: #1a1d21;
+    line-height: 26px;
+    color: #0d1014;
   }
 
   .dim-value:dark {
@@ -108,11 +108,11 @@
 
   .dim-caption {
     margin-top: 2px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    line-height: 12px;
+    line-height: 14px;
     letter-spacing: 1.4px;
-    color: #6b7280;
+    color: #3f4756;
   }
 
   .dim-caption:dark {
@@ -126,10 +126,10 @@
   }
 
   .spec-label {
-    font-size: 13px;
-    font-weight: 400;
-    line-height: 17px;
-    color: #6b7280;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 20px;
+    color: #3f4756;
   }
 
   .spec-label:dark {
@@ -137,11 +137,11 @@
   }
 
   .spec-value {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
-    line-height: 17px;
+    line-height: 20px;
     text-align: right;
-    color: #1a1d21;
+    color: #0d1014;
   }
 
   .spec-value:dark {
@@ -155,10 +155,10 @@
   }
 
   .metric-label {
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 15px;
-    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+    color: #3f4756;
   }
 
   .metric-label:dark {
@@ -166,11 +166,11 @@
   }
 
   .metric-value {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
-    line-height: 15px;
+    line-height: 18px;
     text-align: right;
-    color: #1a1d21;
+    color: #0d1014;
   }
 
   .metric-value:dark {
@@ -178,8 +178,8 @@
   }
 
   .metric-track {
-    height: 5px;
-    width: 382px;
+    height: 7px;
+    width: 452px;
     margin-top: 3px;
     border-radius: 3px;
     background-color: #e2e6ed;
@@ -190,7 +190,7 @@
   }
 
   .metric-bar {
-    height: 5px;
+    height: 7px;
     width: 0px;
     border-radius: 3px;
     background-color: #24a148;
@@ -198,10 +198,10 @@
 
   .env-caption {
     margin-top: 2px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
-    line-height: 16px;
-    color: #6b7280;
+    line-height: 18px;
+    color: #3f4756;
   }
 
   .env-caption:dark {
@@ -218,12 +218,12 @@
   }
 
   .env-button {
-    width: 250px;
+    width: 300px;
     justify-content: center;
   }
 
   .button-label {
-    font-size: 13px;
+    font-size: 15px;
     transform-translate-y: 1px;
   }
 </style>

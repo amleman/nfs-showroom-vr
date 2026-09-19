@@ -40,7 +40,7 @@
   .panel-root {
     flex-direction: column;
     font-family: "DM Sans";
-    width: 380px;
+    width: 440px;
   }
 
   .panel-content {
@@ -53,12 +53,12 @@
   }
 
   .eyebrow {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
-    line-height: 14px;
-    letter-spacing: 2px;
+    line-height: 16px;
+    letter-spacing: 1.8px;
     text-align: center;
-    color: #0f62fe;
+    color: #0b4fd4;
   }
 
   .eyebrow:dark {
@@ -68,11 +68,11 @@
   .machine-name {
     margin-top: 8px;
     text-align: center;
-    font-size: 24px;
+    font-size: 27px;
     font-weight: 700;
-    line-height: 28px;
+    line-height: 31px;
     letter-spacing: -0.4px;
-    color: #1a1d21;
+    color: #0d1014;
   }
 
   .machine-name:dark {
@@ -82,11 +82,11 @@
   .machine-position {
     margin-top: 6px;
     text-align: center;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 500;
-    line-height: 16px;
+    line-height: 19px;
     letter-spacing: 0.5px;
-    color: #6b7280;
+    color: #3f4756;
   }
 
   .machine-position:dark {
@@ -112,12 +112,12 @@
   }
 
   .nav-button {
-    width: 78px;
+    width: 92px;
     justify-content: center;
   }
 
   .button-label {
-    font-size: 13px;
+    font-size: 15px;
     transform-translate-y: 1px;
   }
 </style>

@@ -71,14 +71,18 @@ explícito. **El orden importa**: cada uno resuelve al anterior en su `init()`.
 ```
 MachineSwapperSystem        carrusel, carga bajo demanda, LRU, animaciones
 MachineTurntableSystem      una vuelta completa con smoothstep, y para
-EnvironmentSwitcherSystem   galería  <->  nave industrial
-InspectionHotspotSystem     marcadores 3D sobre la máquina
+EnvironmentSwitcherSystem   galeria  <->  nave industrial
+InspectionHotspotSystem     marcadores 3D sobre la maquina
+HotspotCardSystem           tarjeta flotante junto al marcador + linea guia
 MachineSelectorPanelSystem  panel selector -> swapper/turntable
-SpecPanelSystem             ficha técnica + botón de entorno
+SpecPanelSystem             ficha tecnica + boton de entorno
 InspectionPanelSystem       lista de puntos + detalle
-PanelSystem                 panel de bienvenida (entrar/salir de XR)
+DesktopNavigationSystem     mirar con el mouse; dormido hasta que la landing lo activa
 RenderTuningSystem          foveation + sombras bajo demanda
 TurnPivotCapture (-10) / TurnPivotCorrect (+10)   envuelven al TurnSystem interno
+
+`src/landing.ts` no es un sistema: es la pagina 2D de `index.html` que corre
+antes de todo y decide por que puerta entra el visitante.
 ```
 
 ### Grafo de escena (`public/scenes/main.iwsdk.scene.json`)
@@ -92,7 +96,7 @@ showroom-stage
 lights-gallery            key + back + top + hemisférica  (blancas, neutras)
 lights-studio             key + rim + hemisférica
 inspection-panel · machine-selector-panel · machine-specs-panel   {RayInteractable}
-welcome-panel             {ScreenSpace}
+hotspot-card              tarjeta flotante; HotspotCardSystem la coloca cada frame
 raíz: DomeGradient + IBLGradient · environment: { shadows: true, pcf }
 ```
 
@@ -154,12 +158,20 @@ catálogo. Es la única forma de que el número sea honesto.
 | máquina | largo | ancho | alto | referencia real |
 | --- | --- | --- | --- | --- |
 | Camión minero | 15.5 m | 9.0 m | 7.9 m | Komatsu 930E-4: 15.6 × 8.7 × 7.4 |
-| Excavadora | 8.6 m | 3.2 m | 3.9 m | CAT 336: ancho 3.19 |
+| Excavadora | 11.2 m | 4.1 m | 5.1 m | CAT 336: largo 11.2 — **+30% pedido** |
 | Retroexcavadora | 8.3 m | 2.3 m | 3.6 m | JCB 3CX: ancho 2.35 |
-| Camioneta | 6.5 m | 2.8 m | 2.1 m | Sierra 2500HD: largo 6.65 |
+| Camioneta | 7.5 m | 3.2 m | 2.4 m | Sierra 2500HD: largo 6.65 — **+15% pedido** |
 | Brazo robótico | 2.1 m | 1.4 m | 1.5 m | ABB IRB 4600: alcance 2.05 |
 | Brazo de precisión | 3.7 m | 2.4 m | 2.0 m | manipulador de 7 ejes |
-| Vehículo de oruga | 7.1 m | 3.0 m | 3.0 m | **el más flojo** (ver §8) |
+| Vehículo de oruga | 8.9 m | 4.0 m | 3.8 m | **el más flojo** (ver §8), **+25% pedido** |
+
+Tres de esas alturas quedaron por encima de la de su máquina de referencia: se
+subieron a ojo a pedido, porque en el piso, junto a un camión de 15 m, las
+proporciones correctas leían pequeñas. La ficha sigue siendo internamente
+honesta —cita lo que se mide en escena— pero la excavadora, la camioneta y el
+vehículo de oruga ya no coinciden con la altura publicada de su referencia. El
+de la excavadora es el único que se defiende solo: a +30% su **largo** da justo
+los 11.2 m del CAT 336 real.
 
 ---
 
@@ -311,7 +323,41 @@ es el que minimiza el ancho reportado.
 | Panel *Animar* | Play/pausa de la animación (se atenúa si no hay) |
 | Botones SSO/TEC/MTO | Punto de inspección |
 
-En navegador: **←/→** cambian de equipo, **R** da una vuelta, **E** anima, **T** entorno.
+En navegador la experiencia es en primera persona, sin visor: **W A S D** o las
+flechas caminan, **arrastrar con el mouse** mira, **Q / E** cambian de equipo,
+**R** da una vuelta, **F** anima, **T** cambia de entorno, **Esc** vuelve a la
+landing. Las flechas pasaron a ser locomoción, y por eso el carrusel se movió a
+Q/E y la animación de E a F.
+
+---
+
+## 11. Las dos puertas de entrada
+
+`index.html` ya no es un contenedor vacío: es una landing 2D con parallax que
+explica el proyecto, con el canvas del showroom renderizando detrás. Ofrece dos
+puertas y no esconde ninguna:
+
+- **Pruébalo en XR** — `world.launchXR()`. Se deshabilita con una explicación
+  cuando `navigator.xr.isSessionSupported('immersive-vr')` dice que no, en lugar
+  de desaparecer: un control escondido se lee como página rota.
+- **Explorar en el navegador** — oculta la landing y despierta
+  `DesktopNavigationSystem`. Cuando no hay visor, esta pasa a ser la principal.
+
+Eso es lo que resuelve el caso de GitHub Pages. La mitad del trabajo ya venía en
+IWSDK y solo había que encenderla: `locomotion.browserControls` en
+`iwsdk.config.json` ata WASD a las mismas acciones que el thumbstick, y fuera de
+sesión XR el locomotor toma su referencia de `world.camera`. Lo único que
+faltaba era el mouse, que es todo lo que agrega `DesktopNavigationSystem`.
+
+Dos detalles que no son obvios:
+
+- **La vista `hero` se aplica una sola vez**, al cargar el nivel, y nunca se
+  vuelve a imponer. Por eso la cámara se puede tomar prestada sin pelear. Aun
+  así el sistema reescribe la posición local de la cámara **cada frame**, para
+  que una recarga de nivel no deje al visitante flotando en el punto de vista de
+  la cámara hero.
+- **Mientras la landing está arriba, el canvas no recibe eventos de puntero**
+  (`pointer-events: none`), o el gesto de scroll se lo come el canvas.
 
 ---
 

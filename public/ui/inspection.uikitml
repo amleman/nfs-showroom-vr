@@ -38,7 +38,7 @@
   .panel-root {
     flex-direction: column;
     font-family: "DM Sans";
-    width: 430px;
+    width: 500px;
   }
 
   .head {
@@ -50,11 +50,11 @@
   }
 
   .eyebrow {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
-    line-height: 14px;
-    letter-spacing: 2px;
-    color: #0f62fe;
+    line-height: 16px;
+    letter-spacing: 1.8px;
+    color: #0b4fd4;
   }
 
   .eyebrow:dark {
@@ -63,10 +63,10 @@
 
   .legend {
     margin-top: 5px;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 16px;
-    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 18px;
+    color: #3f4756;
   }
 
   .legend:dark {
@@ -83,12 +83,12 @@
   }
 
   .hot-button {
-    width: 68px;
+    width: 82px;
     justify-content: center;
   }
 
   .button-label {
-    font-size: 12px;
+    font-size: 14px;
     transform-translate-y: 1px;
   }
 
@@ -101,20 +101,20 @@
   }
 
   .hot-kind {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
-    line-height: 13px;
+    line-height: 15px;
     letter-spacing: 1.6px;
-    color: #ff8c1a;
+    color: #d9700c;
   }
 
   .hot-title {
     margin-top: 5px;
-    font-size: 19px;
+    font-size: 23px;
     font-weight: 700;
-    line-height: 23px;
+    line-height: 27px;
     letter-spacing: -0.2px;
-    color: #1a1d21;
+    color: #0d1014;
   }
 
   .hot-title:dark {
@@ -123,10 +123,10 @@
 
   .hot-body {
     margin-top: 8px;
-    font-size: 13px;
-    font-weight: 400;
-    line-height: 18px;
-    color: #4b5563;
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 21px;
+    color: #24292f;
   }
 
   .hot-body:dark {

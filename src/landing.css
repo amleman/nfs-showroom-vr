@@ -1,0 +1,492 @@
+/*
+ * Landing page for the browser. Plain DOM over the live canvas.
+ *
+ * Nothing here is UIKitML, so accents and typographic punctuation are safe —
+ * that restriction belongs to the spatial panels and their bundled font, not to
+ * this page.
+ */
+
+:root {
+  --ink: #0d1014;
+  --ink-soft: #3f4756;
+  --paper: #f4f6f9;
+  --accent: #0b4fd4;
+  --accent-soft: #6fa8ff;
+  --dark: #10141a;
+  --dark-soft: #1b222c;
+  --edge: rgba(13, 16, 20, 0.1);
+  --font: 'DM Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--dark);
+}
+
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The canvas is the backdrop the whole time the landing is up. */
+#scene-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+#scene-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.landing {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+/* Handed over to the scene: the page gets out of the way entirely. */
+.landing[data-state='entered'] {
+  display: none;
+}
+
+/* --- hero ---------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 clamp(20px, 6vw, 96px);
+  overflow: hidden;
+}
+
+/*
+ * A wash rather than a solid: the showroom renders behind this the whole time,
+ * and the point of the first screen is that the visitor can already see the
+ * thing the copy is describing.
+ */
+.hero-layer--wash {
+  position: absolute;
+  inset: -10% -10% -20% -10%;
+  background:
+    radial-gradient(
+      70% 80% at 18% 45%,
+      rgba(8, 11, 15, 0.94) 0%,
+      rgba(8, 11, 15, 0.82) 38%,
+      rgba(8, 11, 15, 0.16) 78%,
+      rgba(8, 11, 15, 0) 100%
+    );
+  pointer-events: none;
+  will-change: transform;
+}
+
+.hero-copy {
+  position: relative;
+  max-width: 660px;
+  color: #fff;
+  will-change: transform;
+}
+
+.eyebrow {
+  margin: 0 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-soft);
+}
+
+.hero h1 {
+  margin: 0 0 22px;
+  font-size: clamp(42px, 7.2vw, 88px);
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  font-weight: 700;
+}
+
+.hero-accent {
+  display: block;
+  color: var(--accent-soft);
+}
+
+.lede {
+  margin: 0 0 34px;
+  max-width: 54ch;
+  font-size: clamp(16px, 1.5vw, 19px);
+  line-height: 1.62;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.hero-note {
+  margin: 18px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.55);
+  min-height: 21px;
+}
+
+.hero-scroll {
+  position: absolute;
+  left: clamp(20px, 6vw, 96px);
+  bottom: 34px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.hero-scroll span {
+  display: block;
+  width: 34px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.42);
+  transform-origin: left center;
+  animation: sweep 2.4s ease-in-out infinite;
+}
+
+@keyframes sweep {
+  0%,
+  100% {
+    transform: scaleX(0.35);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* --- buttons ------------------------------------------------------------- */
+
+.btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 15px 30px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    opacity 0.16s ease;
+}
+
+.btn--sm {
+  padding: 11px 22px;
+  font-size: 14px;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: #0a45ba;
+  transform: translateY(-1px);
+}
+
+.btn--ghost {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.13);
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* --- bands --------------------------------------------------------------- */
+
+.band {
+  position: relative;
+  background: var(--paper);
+  padding: clamp(64px, 9vw, 128px) clamp(20px, 6vw, 96px);
+}
+
+.band--dark {
+  background: var(--dark);
+  color: #fff;
+}
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.band h2 {
+  margin: 0 0 26px;
+  font-size: clamp(28px, 4vw, 46px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+.band .eyebrow {
+  color: var(--accent);
+}
+
+.band--dark .eyebrow {
+  color: var(--accent-soft);
+}
+
+.body {
+  margin: 0;
+  max-width: 68ch;
+  font-size: clamp(16px, 1.4vw, 18px);
+  line-height: 1.68;
+  color: var(--ink-soft);
+}
+
+.band--dark .body {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.body--small {
+  margin-top: 26px;
+  font-size: 15px;
+}
+
+/* --- cards --------------------------------------------------------------- */
+
+.cards {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 8px;
+}
+
+.card {
+  padding: 30px 28px 32px;
+  border-radius: 16px;
+  background: var(--dark-soft);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.card-index {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--accent-soft);
+}
+
+.card h3 {
+  margin: 0 0 12px;
+  font-size: 21px;
+  line-height: 1.22;
+  letter-spacing: -0.02em;
+}
+
+.card p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.62;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+/* --- table --------------------------------------------------------------- */
+
+.table {
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 2.4fr) repeat(3, minmax(0, 0.7fr));
+  gap: 12px;
+  padding: 15px 22px;
+  border-top: 1px solid var(--edge);
+  font-size: 15px;
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.row span:not(:first-child) {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.row--head {
+  background: #eef1f6;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.row--head span:not(:first-child) {
+  font-weight: 700;
+}
+
+/* --- controls ------------------------------------------------------------ */
+
+.controls {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.controls-col {
+  padding: 28px;
+  border-radius: 16px;
+  background: var(--dark-soft);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.controls-col h3 {
+  margin: 0 0 16px;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+}
+
+.controls-col ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.controls-col li {
+  padding: 9px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 15px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.controls-col li:first-child {
+  border-top: 0;
+}
+
+.controls-col b {
+  color: #fff;
+  font-weight: 700;
+}
+
+/* --- footer -------------------------------------------------------------- */
+
+.foot {
+  background: #0a0d11;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 46px clamp(20px, 6vw, 96px);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.foot p {
+  margin: 0;
+  max-width: 64ch;
+}
+
+/* --- fixed dock ---------------------------------------------------------- */
+
+.dock {
+  position: fixed;
+  z-index: 3;
+  right: clamp(16px, 4vw, 40px);
+  bottom: clamp(16px, 4vw, 34px);
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 999px;
+  background: rgba(10, 13, 17, 0.82);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+}
+
+.dock[data-visible='true'] {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- scroll reveal ------------------------------------------------------- */
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(26px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 0.8, 0.3, 1),
+    transform 0.6s cubic-bezier(0.22, 0.8, 0.3, 1);
+}
+
+[data-reveal].is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/*
+ * Parallax and reveal are decoration. Somebody who has asked their system to
+ * stop moving things gets the page with everything already in place.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-parallax] {
+    transform: none !important;
+  }
+
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .hero-scroll span {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .row {
+    grid-template-columns: minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr));
+    padding: 13px 16px;
+    font-size: 13px;
+  }
+
+  .dock {
+    left: clamp(16px, 4vw, 40px);
+    justify-content: center;
+  }
+}

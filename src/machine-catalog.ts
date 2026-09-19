@@ -164,7 +164,12 @@ export const MACHINE_CATALOG: readonly MachineEntry[] = [
     label: 'Excavadora Hidraulica de Orugas',
     category: 'MOVIMIENTO DE TIERRA',
     reference: 'Clase Caterpillar 336',
-    realHeight: 3.9,
+    // 5.07 m rather than the 3.9 m this model measures at its own proportions:
+    // +30% by eye, asked for on the floor. It is not arbitrary in one respect —
+    // anchoring this model on height left it 8.6 m long against 11.2 m for a real
+    // CAT 336, so the extra size brings the LENGTH to 11.2 m and it is the height
+    // that now reads tall. The model's aspect ratio cannot satisfy both.
+    realHeight: 5.07,
     yawDeg: -28,
     specs: [
       { label: 'Peso operativo', value: '36.6 t' },
@@ -391,7 +396,9 @@ export const MACHINE_CATALOG: readonly MachineEntry[] = [
     label: 'Camioneta de Servicio Pesado',
     category: 'SOPORTE DE FLOTA',
     reference: 'Clase GMC Sierra 2500HD',
-    realHeight: 2.06,
+    // 2.37 m rather than the 2.06 m of a real Sierra 2500HD: +15% by eye, asked
+    // for so it holds its own beside a 15 m haul truck.
+    realHeight: 2.37,
     yawDeg: 34,
     // The download parks the truck at -28.8 degrees inside its own file, which
     // measured 4.87 m across instead of 2.80 m. See `alignYawDeg` above.
@@ -456,13 +463,10 @@ export const MACHINE_CATALOG: readonly MachineEntry[] = [
     label: 'Vehiculo Blindado de Oruga',
     category: 'PLATAFORMA PESADA SOBRE ORUGA',
     reference: 'Clase carro de combate principal',
-    // 3.0 m rather than the 2.4 m of a real turret roof. Anchoring this model on
-    // its true height left it 5.7 m long against 7.7 m of real hull, and it read
-    // as a scale model parked next to machines that are correct. Since its
-    // proportions cannot all be right at once, the height gives way: at 3.0 m it
-    // measures 7.1 x 3.0 m on the floor, which is within a metre of the real
-    // hull in both directions.
-    realHeight: 3.0,
+    // 3.75 m against 2.4 m of real turret roof. This model's proportions match
+    // nothing in service, so its height was already giving way to get the
+    // footprint right; +25% on top of that was asked for by eye on the floor.
+    realHeight: 3.75,
     yawDeg: -34,
     specs: [
       { label: 'Peso de combate', value: '55 t' },
