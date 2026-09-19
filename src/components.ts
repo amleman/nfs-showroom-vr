@@ -6,6 +6,6 @@
  */
 
 import { defineComponents } from '@iwsdk/core';
-import { Robot } from './robot-component.js';
+import { InspectionPoint } from './inspection-component.js';
 
-export default defineComponents([Robot]);
+export default defineComponents([InspectionPoint]);

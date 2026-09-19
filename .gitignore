@@ -44,15 +44,12 @@ pids/
 .vscode/mcp.json
 .codex/config.toml
 
-# Music tracks. Kept out of the repo: they are commercial releases and ~105 MB,
-# and this repository is public. Drop your own .mp3 files into
-# public/audio/music/ and run `npm run music` to regenerate playlist.json.
-public/audio/music/*.mp3
-# Generated from whatever is in that folder by scripts/generate-playlist.mjs,
-# which predev/prebuild run automatically.
-public/audio/music/playlist.json
+# Runtime-ready models generated from public/gltf/new_gbl_models and
+# public/gltf/showrooms by scripts/prepare-models.mjs, which predev/prebuild run
+# automatically. Derived output: the downloads next to them are what is
+# versioned.
+public/gltf/industrial/
 
-# Headset-sized models generated from public/gltf by scripts/optimize-models.mjs,
-# which predev/prebuild run automatically. Derived output, like playlist.json:
-# the sources next to them are what is versioned.
-public/gltf/optimized/
+# Leftovers from the previous, car-themed build of this project. Kept out of the
+# way rather than deleted from history; `main` still has all of it.
+public/audio/

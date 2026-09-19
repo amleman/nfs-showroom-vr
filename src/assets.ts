@@ -6,144 +6,101 @@
  */
 
 import { AssetType, defineAssets } from '@iwsdk/core';
-import displayPlatform from './scene-assets/display-platform.scene-asset.js';
-import ledStrip from './scene-assets/led-strip.scene-asset.js';
 
 const publicAssetUrl = (filePath: string): string =>
   `${import.meta.env.BASE_URL}${filePath.replace(/^\/+/u, '')}`;
-const DEFAULT_STOCK_ASSET_BASE =
-  'https://cdn.jsdelivr.net/npm/@iwsdk/example-assets@0.4.2/assets';
-const configuredStockAssetBase =
-  import.meta.env.VITE_IWSDK_EXAMPLE_ASSET_BASE_URL?.trim();
-const stockAssetBase = (
-  configuredStockAssetBase || DEFAULT_STOCK_ASSET_BASE
-).replace(/\/+$/u, '');
-
-function stockAssetUrl(assetId: string, fileName: string): string {
-  return `${stockAssetBase}/${assetId}/${fileName}`;
-}
 
 export default defineAssets({
-  'environment-desk': {
-    url: stockAssetUrl('environment-desk', 'environmentDesk.gltf'),
+  // --- Showrooms ------------------------------------------------------------
+  // Both environments stay resident. Together they are 0.7 MB and 9 500
+  // triangles, which is nothing next to a single machine, and keeping them
+  // loaded is what makes the switch between them instant.
+  'showroom-gallery': {
+    url: publicAssetUrl('gltf/industrial/vr_exhibition_gallery_baked.glb'),
     type: AssetType.GLTF,
-    name: 'Environment Desk',
+    name: 'Galeria de exhibicion',
+    priority: 'critical',
+  },
+  'showroom-studio': {
+    url: publicAssetUrl('gltf/industrial/studio_v1_for_car.glb'),
+    type: AssetType.GLTF,
+    name: 'Nave industrial',
+    priority: 'critical',
+  },
+
+  // --- Machines -------------------------------------------------------------
+  // Every model below resolves to `gltf/industrial/`, which is GENERATED from
+  // the downloads beside it by `npm run models` (wired into predev/prebuild).
+  // Point these URLs at the sources and five of the seven need a DRACO decoder
+  // fetched from a CDN at runtime, and two carry `EXT_meshopt_compression`,
+  // which this runtime has no decoder for at all and simply fails to open. Edit
+  // the source, not `industrial/`.
+  //
+  // All 'lazy': MachineSwapperSystem loads each on demand and holds a bounded
+  // number resident, so preloading them would defeat the memory bound the
+  // swapper exists to enforce.
+  'machine-dump-truck': {
+    url: publicAssetUrl('gltf/industrial/dump_truck.glb'),
+    type: AssetType.GLTF,
+    name: 'Camion minero de acarreo',
     priority: 'lazy',
   },
-  'plant-sansevieria': {
-    url: stockAssetUrl('plant-sansevieria', 'plantSansevieria.gltf'),
+  'machine-excavator': {
+    url: publicAssetUrl('gltf/industrial/excavator_cat.glb'),
     type: AssetType.GLTF,
-    name: 'Plant Sansevieria',
+    name: 'Excavadora hidraulica de orugas',
     priority: 'lazy',
   },
-  robot: {
-    url: stockAssetUrl('robot', 'robot.gltf'),
+  'machine-backhoe': {
+    url: publicAssetUrl('gltf/industrial/jcb_backhoe_loader.glb'),
     type: AssetType.GLTF,
-    name: 'Robot',
+    name: 'Retroexcavadora cargadora',
     priority: 'lazy',
   },
+  'machine-robot-arm': {
+    url: publicAssetUrl('gltf/industrial/black_honey_robotic_arm.glb'),
+    type: AssetType.GLTF,
+    name: 'Brazo robotico industrial',
+    priority: 'lazy',
+  },
+  'machine-precision-arm': {
+    url: publicAssetUrl('gltf/industrial/medical_robotic_arm.glb'),
+    type: AssetType.GLTF,
+    name: 'Brazo robotico de precision',
+    priority: 'lazy',
+  },
+  'machine-service-truck': {
+    url: publicAssetUrl('gltf/industrial/gmc_sierra_hd2500.glb'),
+    type: AssetType.GLTF,
+    name: 'Camioneta de servicio pesado',
+    priority: 'lazy',
+  },
+  'machine-tracked-vehicle': {
+    url: publicAssetUrl('gltf/industrial/simple_tank.glb'),
+    type: AssetType.GLTF,
+    name: 'Vehiculo blindado de oruga',
+    priority: 'lazy',
+  },
+
+  // --- Panels ---------------------------------------------------------------
   'welcome-panel': {
     url: publicAssetUrl('ui/welcome.uikitml'),
     type: AssetType.UIKitML,
-    name: 'Welcome Panel',
+    name: 'Panel de bienvenida',
   },
-  'webxr-banner': {
-    url: publicAssetUrl('gltf/webxr-banner/banner.gltf'),
-    type: AssetType.GLTF,
-    name: 'WebXR Banner',
-    priority: 'lazy',
-  },
-
-  // --- NFS showroom ---------------------------------------------------------
-  // Every model below resolves to `gltf/optimized/`, which is GENERATED from the
-  // sources beside it by `npm run models` (wired into predev/prebuild). Those
-  // sources are desktop assets: the catalog needs 4.5 GB of texture VRAM as
-  // downloaded, against roughly 1 GB of headroom on a Quest 3. The generated
-  // copies need 525 MB. Point these URLs back at the raw files and the app dies
-  // on the fourth car. Edit the source, not `optimized/`.
-  //
-  // The garage is authored at ~1/10 scale (raw bounds 2.5 x 0.78 x 1.92 m) and
-  // its floor sits at y = -0.24 in model space. The scene node carries the
-  // scale-up and the matching lift, not this manifest.
-  garage: {
-    url: publicAssetUrl('gltf/optimized/garage.glb'),
-    type: AssetType.GLTF,
-    name: 'Garage',
-    priority: 'critical',
-  },
-  'car-bmw-m3-gtr': {
-    url: publicAssetUrl('gltf/optimized/cars/bmw_m3_gtr_e46_razor.glb'),
-    type: AssetType.GLTF,
-    name: 'BMW M3 GTR E46 (Razor)',
-    priority: 'lazy',
-  },
-  // Processed copy: the original export carries an 11 m blended "floor" quad at
-  // y = 0 that z-fights the garage floor. See the sibling *_azzurro_hyperion.glb
-  // for the untouched download.
-  'car-ferrari-550': {
-    url: publicAssetUrl('gltf/optimized/cars/ferrari-550-barchetta.glb'),
-    type: AssetType.GLTF,
-    name: 'Ferrari 550 Barchetta',
-    priority: 'lazy',
-  },
-  // The rest of the carousel. All 'lazy': CarSwapperSystem loads each on demand
-  // and holds a bounded number resident, so preloading them would defeat the
-  // memory bound the swapper exists to enforce.
-  'car-bmw-m3-gtr-black': {
-    url: publicAssetUrl('gltf/optimized/cars/bmw_m3_gtr_e46_black.glb'),
-    type: AssetType.GLTF,
-    name: 'BMW M3 GTR E46 (Black)',
-    priority: 'lazy',
-  },
-  'car-camaro-ss-350': {
-    url: publicAssetUrl('gltf/optimized/cars/1967_chevrolet_camaro_ss_350_coupe.glb'),
-    type: AssetType.GLTF,
-    name: 'Chevrolet Camaro SS 350 (1967)',
-    priority: 'lazy',
-  },
-  'car-charger-daytona': {
-    url: publicAssetUrl(
-      'gltf/optimized/cars/doms_dodge_charger_daytona_1969_fastfurious_6.glb',
-    ),
-    type: AssetType.GLTF,
-    name: 'Dodge Charger Daytona (1969)',
-    priority: 'lazy',
-  },
-  'car-dodge-pickup': {
-    url: publicAssetUrl('gltf/optimized/cars/dodge_b-series_pickup_1953_x_mas_car.glb'),
-    type: AssetType.GLTF,
-    name: 'Dodge B-Series Pickup (1953)',
-    priority: 'lazy',
-  },
-  'car-bugatti-eb110': {
-    url: publicAssetUrl('gltf/optimized/cars/bugatti_eb110_super_sport_1992.glb'),
-    type: AssetType.GLTF,
-    name: 'Bugatti EB110 Super Sport (1992)',
-    priority: 'lazy',
-  },
-  'car-jiotto-caspita': {
-    url: publicAssetUrl('gltf/optimized/cars/Jiotto_Caspita_Roadster.glb'),
-    type: AssetType.GLTF,
-    name: 'Jiotto Caspita Roadster',
-    priority: 'lazy',
-  },
-
-  'sound-system': {
-    url: publicAssetUrl('gltf/optimized/sound_system.glb'),
-    type: AssetType.GLTF,
-    name: 'Sound System',
-    priority: 'critical',
-  },
-  'car-selector': {
-    url: publicAssetUrl('ui/car-selector.uikitml'),
+  'machine-selector': {
+    url: publicAssetUrl('ui/machine-selector.uikitml'),
     type: AssetType.UIKitML,
-    name: 'Car Selector Panel',
+    name: 'Selector de equipo',
   },
-  'music-player': {
-    url: publicAssetUrl('ui/music_player.uikitml'),
+  'machine-specs': {
+    url: publicAssetUrl('ui/machine-specs.uikitml'),
     type: AssetType.UIKitML,
-    name: 'Music Player Panel',
+    name: 'Ficha tecnica',
   },
-  'display-platform': displayPlatform,
-  'led-strip': ledStrip,
+  'inspection-panel': {
+    url: publicAssetUrl('ui/inspection.uikitml'),
+    type: AssetType.UIKitML,
+    name: 'Puntos de inspeccion',
+  },
 });

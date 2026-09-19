@@ -7,16 +7,15 @@
 
 import { World } from '@iwsdk/core';
 import projectOptions from 'virtual:iwsdk-project';
-import { CarSeatSystem } from './car-seat.js';
-import { CarSelectorPanelSystem } from './car-selector-panel.js';
-import { CarSwapperSystem } from './car-swapper.js';
-import { AudioReactiveLedSystem } from './audio-reactive-led.js';
-import { CarTurntableSystem } from './car-turntable.js';
-import { MusicPanelSystem } from './music-panel.js';
-import { MusicPlayerSystem } from './music-player.js';
+import { EnvironmentSwitcherSystem } from './environment-switcher.js';
+import { InspectionHotspotSystem } from './inspection-hotspots.js';
+import { InspectionPanelSystem } from './inspection-panel.js';
+import { MachineSelectorPanelSystem } from './machine-selector-panel.js';
+import { MachineSwapperSystem } from './machine-swapper.js';
+import { MachineTurntableSystem } from './machine-turntable.js';
 import { PanelSystem } from './panel.js';
 import { RenderTuningSystem } from './render-tuning.js';
-import { RobotSystem } from './robot.js';
+import { SpecPanelSystem } from './spec-panel.js';
 import {
   TurnPivotCaptureSystem,
   TurnPivotCorrectSystem,
@@ -26,21 +25,19 @@ World.create(
   document.getElementById('scene-container') as HTMLDivElement,
   projectOptions,
 ).then((world) => {
-  world.registerSystem(RobotSystem);
-
   // Order matters: each of these resolves the previous one during its own init().
-  world.registerSystem(CarSwapperSystem);
-  world.registerSystem(CarTurntableSystem);
-  world.registerSystem(CarSelectorPanelSystem);
+  world.registerSystem(MachineSwapperSystem);
+  world.registerSystem(MachineTurntableSystem);
+  world.registerSystem(EnvironmentSwitcherSystem);
 
-  // After the swapper and turntable, whose input it suspends while seated.
-  world.registerSystem(CarSeatSystem);
+  // After the swapper: the markers are rebuilt from its measured fit.
+  world.registerSystem(InspectionHotspotSystem);
 
-  // Player before the panel and the LEDs; both read its signals/analyser.
-  world.registerSystem(MusicPlayerSystem);
-  world.registerSystem(MusicPanelSystem);
-  world.registerSystem(AudioReactiveLedSystem);
-
+  // Panels last among the feature systems; every one of them resolves a system
+  // above and subscribes to its signals.
+  world.registerSystem(MachineSelectorPanelSystem);
+  world.registerSystem(SpecPanelSystem);
+  world.registerSystem(InspectionPanelSystem);
   world.registerSystem(PanelSystem);
 
   // After the swapper and turntable: it subscribes to both to decide when the

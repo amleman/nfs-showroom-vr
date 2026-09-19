@@ -10,11 +10,12 @@
  * their view, so the edges of the frame are the cheapest pixels in the scene to
  * give up, and this is the largest fill-rate saving available for one line.
  *
- * **On-demand shadows.** `key-spot` casts, which means three.js re-renders the
- * casters from the light's point of view every single frame — a second pass over
- * the car's ~60 draw calls to produce a depth map that is usually identical to
- * the last one. Nothing on this stage moves unless the player asks it to, so the
- * map is rebuilt on the frames that follow a request and left alone otherwise.
+ * **On-demand shadows.** The key light casts, which means three.js re-renders
+ * the casters from the light's point of view every single frame — a second pass
+ * over the machine's draw calls to produce a depth map that is usually identical
+ * to the last one. Nothing on this floor moves unless the visitor asks it to, so
+ * the map is rebuilt on the frames that follow a request and left alone
+ * otherwise.
  *
  * The invalidation is deliberately generous rather than exact: a stale shadow is
  * a visible artifact, an extra shadow pass is a few tenths of a millisecond.
@@ -22,8 +23,9 @@
  */
 
 import { createSystem } from '@iwsdk/core';
-import { CarSwapperSystem } from './car-swapper.js';
-import { CarTurntableSystem } from './car-turntable.js';
+import { EnvironmentSwitcherSystem } from './environment-switcher.js';
+import { MachineSwapperSystem } from './machine-swapper.js';
+import { MachineTurntableSystem } from './machine-turntable.js';
 
 /**
  * 0 is off, 1 is maximum. High enough to matter, low enough that the periphery
@@ -32,16 +34,16 @@ import { CarTurntableSystem } from './car-turntable.js';
 const FOVEATION = 0.75;
 /**
  * Seconds to keep redrawing shadows after a discrete change. Comfortably longer
- * than the door clip, which is the slowest thing this has to cover.
+ * than the turntable ramp, which is the slowest thing this has to cover.
  */
-const DOOR_HOLD_SECONDS = 3;
-/** Shorter hold for a swap: the new car is mounted within a frame or two. */
+const SETTLE_HOLD_SECONDS = 3;
+/** Shorter hold for a swap: the new machine is mounted within a frame or two. */
 const SWAP_HOLD_SECONDS = 0.5;
 
 export class RenderTuningSystem extends createSystem({}) {
   /** Seconds of shadow redraw still owed. */
   private hold = 0;
-  private turntable: CarTurntableSystem | undefined;
+  private turntable: MachineTurntableSystem | undefined;
 
   init(): void {
     // Applies to the current session and every later one; safe before entry.
@@ -50,15 +52,26 @@ export class RenderTuningSystem extends createSystem({}) {
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.shadowMap.needsUpdate = true;
 
-    const swapper = this.world.getSystem(CarSwapperSystem);
-    const turntable = this.world.getSystem(CarTurntableSystem);
+    const swapper = this.world.getSystem(MachineSwapperSystem);
+    const turntable = this.world.getSystem(MachineTurntableSystem);
+    const environments = this.world.getSystem(EnvironmentSwitcherSystem);
 
     if (swapper != null) {
       this.cleanupFuncs.push(
-        // A mounted car changes the silhouette; a finished load changes it again.
-        swapper.activeLabel.subscribe(() => this.invalidate(SWAP_HOLD_SECONDS)),
+        // A mounted machine changes the silhouette; a finished load changes it
+        // again, and so does the machine's own animation starting up.
+        swapper.mountedRevision.subscribe(() => this.invalidate(SWAP_HOLD_SECONDS)),
         swapper.loading.subscribe(() => this.invalidate(SWAP_HOLD_SECONDS)),
-        swapper.doorsOpen.subscribe(() => this.invalidate(DOOR_HOLD_SECONDS)),
+        swapper.cycleRunning.subscribe(() => this.invalidate(SETTLE_HOLD_SECONDS)),
+      );
+    }
+    if (environments != null) {
+      // A different showroom is a different light rig and a different floor for
+      // the shadow to land on.
+      this.cleanupFuncs.push(
+        environments.activeIndex.subscribe(() =>
+          this.invalidate(SETTLE_HOLD_SECONDS),
+        ),
       );
     }
     if (turntable != null) {
@@ -75,7 +88,7 @@ export class RenderTuningSystem extends createSystem({}) {
   }
 
   update(delta: number): void {
-    // A revolution moves the caster continuously, so it redraws throughout.
+    // Turning moves the caster continuously, so it redraws throughout.
     if (this.turntable?.spinning.peek() === true) {
       this.renderer.shadowMap.needsUpdate = true;
       return;

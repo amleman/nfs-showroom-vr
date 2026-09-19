@@ -1,5 +1,9 @@
 <!--
-  Panel, Divider, Button, ButtonIcon, and ButtonLabel come from the bundled
+  Screen-space entry panel. Only ever seen in the browser: PanelSystem swaps the
+  two buttons on visibility state, and in the headset the panel is behind the
+  visitor at the spawn point.
+
+  Panel, Divider, Button, ButtonIcon and ButtonLabel come from the bundled
   Horizon kit. RectangleGoggles and LogIn are bundled Lucide icon components.
 -->
 <style>
@@ -24,50 +28,76 @@
   .panel-root {
     flex-direction: column;
     font-family: "DM Sans";
-    width: 344px;
+    width: 360px;
   }
 
   .panel-content {
-    align-items: center;
+    align-items: flex-start;
     flex-direction: column;
-    padding-top: 16px;
+    padding-top: 18px;
     padding-left: 24px;
     padding-right: 24px;
   }
 
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+    letter-spacing: 2px;
+    color: #0f62fe;
+  }
+
+  .eyebrow:dark {
+    color: #6fa8ff;
+  }
+
   .heading {
-    height: 48px;
-    text-align: center;
+    margin-top: 6px;
+    margin-bottom: 12px;
     font-size: 24px;
     font-weight: 700;
-    line-height: 24px;
+    line-height: 28px;
     letter-spacing: -0.5px;
-    color: #272727;
+    color: #1a1d21;
   }
 
   .heading:dark {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.94);
   }
 
   .sub-heading {
-    color: #272727;
-    font-size: 14px;
-    font-weight: 500;
+    color: #4b5563;
+    font-size: 13px;
+    font-weight: 400;
     line-height: 18px;
     width: 100%;
-    margin-top: 10px;
+    margin-top: 12px;
   }
 
   .sub-heading:dark {
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .controls-note {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 17px;
+    width: 100%;
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+
+  .controls-note:dark {
+    color: rgba(255, 255, 255, 0.55);
   }
 
   .button {
     justify-content: flex-start;
     margin-left: 24px;
     margin-right: 24px;
-    margin-top: 16px;
-    margin-bottom: 24px;
+    margin-top: 14px;
+    margin-bottom: 22px;
   }
 
   .button-label {
@@ -76,23 +106,29 @@
 </style>
 <Panel class="panel-root">
   <div class="panel-content">
-    <div class="heading">Hello, Immersive Web!</div>
+    <div class="eyebrow">SHOWROOM INDUSTRIAL</div>
+    <div class="heading">Maquinaria a escala real</div>
     <Divider></Divider>
     <div class="sub-heading">
-      Build interactive browser, mixed-reality, and virtual-reality experiences
-      with Immersive Web SDK.
+      Siete equipos industriales desplegados a escala 1:1, con ficha tecnica,
+      puntos de inspeccion y criterios de seguridad y salud ocupacional.
+      Recomendado con visor: la escala es el punto.
+    </div>
+    <div class="controls-note">
+      Navegador: flechas cambian de equipo, R gira, E ejecuta el ciclo,
+      T cambia de entorno.
     </div>
   </div>
   <Button id="xr-button" class="button">
     <ButtonIcon>
       <RectangleGoggles></RectangleGoggles>
     </ButtonIcon>
-    <ButtonLabel class="button-label">Enter XR</ButtonLabel>
+    <ButtonLabel class="button-label">Entrar en VR</ButtonLabel>
   </Button>
   <Button id="exit-button" class="button" style="display: none">
     <ButtonIcon>
       <LogIn></LogIn>
     </ButtonIcon>
-    <ButtonLabel class="button-label">Exit to Browser</ButtonLabel>
+    <ButtonLabel class="button-label">Salir al navegador</ButtonLabel>
   </Button>
 </Panel>

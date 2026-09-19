@@ -8,18 +8,21 @@ cuando necesites profundizar.
 
 ## 1. Qué es
 
-**NFS Showroom VR** — un showroom de autos en WebXR para Meta Quest 3, sobre el
-Immersive Web SDK de Meta. El jugador está en un garaje industrial inspirado en
-el refugio de *Need for Speed: Most Wanted* (2005), con un auto iluminado sobre
-una tarima giratoria. Puede cambiar de auto desde paneles espaciales, abrir las
-puertas y meterse al asiento del conductor.
+**Showroom Industrial VR** — una sala de exhibición de maquinaria industrial en
+WebXR para Meta Quest 3, sobre el Immersive Web SDK de Meta. El visitante está
+dentro de una galería blanca de 50 × 43 m con 14 m de altura libre, y frente a él
+hay una máquina **a escala 1:1 real**: un camión minero de acarreo de 7.9 m de
+alto, una excavadora, una retroexcavadora, brazos robóticos. Puede girarla,
+cambiar de equipo, cambiar de entorno, y tocar puntos de inspección sobre la
+máquina para leer su criterio técnico y de seguridad ocupacional.
 
-**Estado: terminado como experimento.** Se construyó para encontrar los límites
-de IWSDK y para probar hasta dónde llega el desarrollo dirigido por agentes.
-Ambas preguntas quedaron respondidas y ahí se detuvo. Funciona; varias
-funcionalidades planeadas quedaron deliberadamente sin construir (§8).
+**La escala es el producto.** Todo lo demás está subordinado a que un ingeniero
+industrial que nunca ha estado junto a un camión de 500 t entienda con su propio
+cuerpo lo que significan 7.9 m de alto. Un modelo escalado "a ojo" es un juguete.
 
-Repo: https://github.com/amleman/nfs-showroom-vr · rama única: `main`.
+Rama: `industrial-showroom`. La rama `main` conserva la versión anterior del
+proyecto, que era un showroom de autos estilo *Need for Speed*; nada de aquello
+se perdió, simplemente ya no se usa.
 
 ---
 
@@ -33,6 +36,7 @@ Repo: https://github.com/amleman/nfs-showroom-vr · rama única: `main`.
 | UI | UIKitML, kit Horizon |
 | Lenguaje | TypeScript |
 | Build | Vite 7 |
+| Pipeline de modelos | glTF-Transform 4 + sharp + meshoptimizer |
 | Objetivo | Navegador de Quest 3 (WebXR); también corre en navegador de escritorio |
 
 ---
@@ -50,8 +54,7 @@ detalla; aquí va lo imprescindible:
   alberga dos roles, **editor** y **runtime**.
 - **`src/assets.ts` se evalúa dos veces**, en dos realms distintos (runtime y
   editor). Debe ser determinista y sin efectos secundarios.
-- **Importa three desde `@iwsdk/core`, nunca desde `three`.** Importar `three`
-  directo crea una segunda instancia y rompe cosas de forma sutil.
+- **Importa three desde `@iwsdk/core`, nunca desde `three`.**
 - **Geometría estática en TypeScript, composición en JSON.** El JSON de escena
   solo referencia IDs del manifiesto, jamás URLs ni materiales.
 - **`entity.dispose()`**, nunca `entity.destroy()` (fuga de VRAM).
@@ -66,209 +69,195 @@ detalla; aquí va lo imprescindible:
 explícito. **El orden importa**: cada uno resuelve al anterior en su `init()`.
 
 ```
-CarSwapperSystem          carrusel, carga bajo demanda, LRU, puertas
-CarTurntableSystem        giro de la tarima
-CarSelectorPanelSystem    panel espacial → swapper/turntable
-CarSeatSystem             asiento del conductor (suspende input de los dos de arriba)
-MusicPlayerSystem         playlist aleatoria, PositionalAudio, AudioAnalyser
-MusicPanelSystem          panel del reproductor
-AudioReactiveLedSystem    barras LED ← analyser del reproductor
-PanelSystem               panel de bienvenida (entrar/salir de XR)
-RenderTuningSystem        foveation + sombras bajo demanda
+MachineSwapperSystem        carrusel, carga bajo demanda, LRU, animaciones
+MachineTurntableSystem      una vuelta completa con smoothstep, y para
+EnvironmentSwitcherSystem   galería  <->  nave industrial
+InspectionHotspotSystem     marcadores 3D sobre la máquina
+MachineSelectorPanelSystem  panel selector -> swapper/turntable
+SpecPanelSystem             ficha técnica + botón de entorno
+InspectionPanelSystem       lista de puntos + detalle
+PanelSystem                 panel de bienvenida (entrar/salir de XR)
+RenderTuningSystem          foveation + sombras bajo demanda
 TurnPivotCapture (-10) / TurnPivotCorrect (+10)   envuelven al TurnSystem interno
 ```
-
-`RobotSystem` es resto del scaffold original: su query está vacía y no cuesta
-nada, pero es código muerto.
 
 ### Grafo de escena (`public/scenes/main.iwsdk.scene.json`)
 
 ```
-garage                    {LocomotionEnvironment}
+showroom-gallery          {LocomotionEnvironment}   visible por defecto
+showroom-studio           {LocomotionEnvironment}   escala 3.4, oculto
 showroom-stage
-└── turntable             ← CarTurntableSystem rota este nodo
-    ├── display-platform  {LocomotionEnvironment}
-    └── car-mount         ← el auto activo se cuelga aquí
-key-spot / rim-back / rim-left / bay-back-glow / ambient-warm   (5 luces)
-car-selector-panel · music-player-panel · welcome-panel   {RayInteractable}
-sound-system · sound-system-copy      ← PositionalAudio de la música
-led-strip-left · led-strip-right      ← ecualizador
-raíz: DomeGradient + IBLTexture · environment: { shadows: true, pcf }
+└── turntable             ← MachineTurntableSystem rota este nodo
+    └── machine-mount     ← la máquina activa y sus marcadores cuelgan aquí
+lights-gallery            key + back + top + hemisférica  (blancas, neutras)
+lights-studio             key + rim + hemisférica
+inspection-panel · machine-selector-panel · machine-specs-panel   {RayInteractable}
+welcome-panel             {ScreenSpace}
+raíz: DomeGradient + IBLGradient · environment: { shadows: true, pcf }
 ```
 
 **Los sistemas resuelven nodos por su ID de escena**, nunca por índice de
-entidad ni por URL. La jerarquía de un auto montado es:
+entidad ni por URL. La jerarquía de una máquina montada es:
 
 ```
-car-mount → pivot (lleva el yawDeg de presentación) → modelo glTF (ya ajustado)
+machine-mount → pivot (lleva el yawDeg de presentación) → modelo glTF (ya ajustado)
 ```
 
-El **espacio del pivote** es el sistema de coordenadas en el que se declaran
-todos los anclajes por auto (asiento, y en el futuro encendido/motor): gira con
-el auto y sobrevive a un cambio de ángulo de presentación.
+Cada entorno lleva **su propio rig de luces**. Ocultar un grupo oculta también
+sus luces (three.js las recoge con `traverseVisible`), así que una sola bandera
+de visibilidad por rig es todo el mecanismo del cambio de entorno.
 
-### Datos por auto — `src/car-catalog.ts`
+### Datos por máquina — `src/machine-catalog.ts`
 
-Ocho autos. Cada entrada declara `assetId`, `label`, `yawDeg` y opcionalmente
-`seat`. **Sin heurísticas, por decisión explícita**: deducir cuál material es la
-carrocería tomando el de más triángulos **falla en 5 de 7 autos**, porque rines
-y tornillos tienen más triángulos que la chapa. Lo mismo vale para asientos y
-faros. Cada funcionalidad **se desactiva sola** en el auto que no declara su
-dato (patrón ya usado en `hasDoors`).
-
-**Solo el Razor M3 tiene asiento calibrado.** Los otros siete no declaran `seat`
-y por tanto no se pueden entrar. El sistema funciona; faltan los datos.
+Siete máquinas. Cada entrada declara `assetId`, `label`, `category`,
+`reference`, **`realHeight`**, `yawDeg`, opcionalmente `alignYawDeg`, y luego
+`specs`, `metrics` y `hotspots`. **Sin heurísticas, por decisión explícita**: de
+un glTF descargado no se puede deducir nada de forma fiable, y falla en silencio.
 
 ---
 
-## 5. Qué hay implementado
+## 5. La escala 1:1 — cómo funciona realmente
 
-| Archivo | Qué hace |
+Es la parte del proyecto que hay que entender antes de tocar nada.
+
+Los modelos descargados **no coinciden en nada**. Medidos tal como vienen:
+
+| modelo | largo autorado |
 | --- | --- |
-| `src/car-swapper.ts` | Carga bajo demanda + **LRU de 2 residentes**. Un `Map` itera en orden de inserción, que es exactamente una cola LRU. Al expulsar: `disposeHierarchy()` **y** `CacheManager.deleteAsset()`. Warm-up de shaders con `compileAsync` antes de mostrar. Puertas por `AnimationMixer`. |
-| `src/car-fit.ts` | Normaliza descargas arbitrarias: oculta planos de suelo y calcomanías, endereza modelos Z-up, escala a 4.6 m, centra y asienta sobre la tarima. |
-| `src/car-seat.ts` | Asiento del conductor. Cinco restricciones del rig documentadas en su cabecera (§7). |
-| `src/car-turntable.ts` | Una revolución con smoothstep sobre el nodo `turntable`. |
-| `src/car-finish.ts` | Acabado PBR de la pintura. **Solo uniformes**, nunca activa features que no existían (cambiaría la permutación de shader). |
-| `src/music-player.ts` | Playlist barajada, `PositionalAudio` en ambas bocinas desde **un solo buffer** decodificado, tap de `AudioAnalyser`. Reutiliza el `AudioListener` que `AudioSystem` ya puso en la cabeza. |
-| `src/audio-reactive-led.ts` | Escribe directo en `instanceMatrix`/`instanceColor`. Cero asignaciones por frame. |
-| `src/render-tuning.ts` | Foveation 0.75; `shadowMap.autoUpdate = false` + invalidación por señales. |
-| `src/gpu-memory.ts` | `disposeHierarchy()`: geometrías → materiales → texturas, con `Set` para deduplicar. **Excluye `envMap` a propósito.** |
-| `src/turn-pivot.ts` | Envuelve al `TurnSystem` interno para que el giro pivote sobre la cabeza, no sobre el origen del espacio de juego. |
-| `src/scene-assets/*.ts` | Prototipos `Object3D` procedurales: tarima y tira LED. |
+| camión minero | 16.7 unidades |
+| excavadora | 0.117 unidades |
+| vehículo de oruga | 31 000 000 unidades |
 
-### Scripts
+Ninguno declara una unidad. No hay nada en el archivo que diga qué tamaño debe
+tener. Por eso el catálogo declara **la altura real en metros** y
+`fitMachineToFloor` mide el resto:
 
-| | |
-| --- | --- |
-| `npm run dev` | Dev server gestionado (corre `models` y `music` antes) |
-| `npm run models` | Reconstruye los modelos a tamaño de visor (incremental; `models:force` rehace todo) |
-| `npm run inspect` | Vuelca materiales, nodos y bounds de un modelo en coordenadas de escena |
-| `npm run music` | Regenera `playlist.json` desde `public/audio/music/` |
-| `npm run typecheck` | `tsc --noEmit` |
+1. oculta planos de suelo y calcomanías (una malla llega con material `floor`),
+2. endereza los modelos Z-up,
+3. aplica `alignYawDeg` si el autor dejó el conjunto girado dentro del archivo,
+4. escala para que la **altura medida** sea `realHeight`,
+5. centra en X/Z y lo asienta en y = 0.
 
-`scripts/glb.mjs` es el lector/escritor GLB compartido por los otros dos.
+**La altura es el ancla, no el largo**, por dos razones: una persona juzga la
+escala contra su propio cuerpo, y una excavadora o una retro llevan el brazo en
+una pose que vuelve su largo irrelevante mientras la altura de cabina es fija.
+
+`alignYawDeg` existe porque la camioneta viene estacionada a −28.8° dentro de su
+propio archivo: su caja alineada a los ejes medía **4.87 m de ancho** en lugar de
+2.80 m, y ese número inflado es el que el panel le habría mostrado al visitante.
+
+**El panel cita las dimensiones medidas del modelo ya ajustado**, no las del
+catálogo. Es la única forma de que el número sea honesto.
+
+### Resultado medido (`npm run inspect`)
+
+| máquina | largo | ancho | alto | referencia real |
+| --- | --- | --- | --- | --- |
+| Camión minero | 15.5 m | 9.0 m | 7.9 m | Komatsu 930E-4: 15.6 × 8.7 × 7.4 |
+| Excavadora | 8.6 m | 3.2 m | 3.9 m | CAT 336: ancho 3.19 |
+| Retroexcavadora | 8.3 m | 2.3 m | 3.6 m | JCB 3CX: ancho 2.35 |
+| Camioneta | 6.5 m | 2.8 m | 2.1 m | Sierra 2500HD: largo 6.65 |
+| Brazo robótico | 2.1 m | 1.4 m | 1.5 m | ABB IRB 4600: alcance 2.05 |
+| Brazo de precisión | 3.7 m | 2.4 m | 2.0 m | manipulador de 7 ejes |
+| Vehículo de oruga | 7.1 m | 3.0 m | 3.0 m | **el más flojo** (ver §8) |
 
 ---
 
-## 6. El problema de rendimiento (lo más importante que se aprendió)
+## 6. El pipeline de modelos — por qué existe
 
-El catálogo pedía **4,477 MB de VRAM de texturas** contra ~1 GB de margen en una
-Quest. Un solo modelo, `bmw_m3_gtr_e46_black.glb`, con **cuarenta texturas de
-4096×4096**, se comía **3.4 GB**. La app se congelaba al cuarto auto.
+`scripts/prepare-models.mjs` reescribe los modelos de
+`public/gltf/new_gbl_models/` y `public/gltf/showrooms/` hacia
+`public/gltf/industrial/`, que es **generado y gitignoreado**. Resuelve cuatro
+problemas, tres de ellos invisibles hasta tener el visor puesto:
 
-`scripts/optimize-models.mjs` limita color a 1024 y mapas de datos a 512,
-deduplica por contenido y reencoda a WebP:
+1. **IWSDK no tiene decoder de meshopt.** Construye su `GLTFLoader` con DRACO y
+   KTX2 y nada más, así que cualquier modelo con `EXT_meshopt_compression`
+   simplemente no abre. Dos de los siete lo traían.
+2. **El decoder de DRACO se baja de unpkg en tiempo de ejecución.** IWSDK
+   hardcodea la ruta del CDN y no la expone en `AssetManager.init`, así que cinco
+   de los siete modelos necesitaban internet **en el visor** para abrir. Una
+   feria es exactamente donde eso no existe.
+3. **Triángulos.** El brazo de precisión traía 1.17 M; ahora 549 k dibujados.
+4. **Atributos de vértice inconsistentes en los showrooms.** Ver §7 — es el que
+   más caro sale.
 
-| | Antes | Después |
-| --- | --- | --- |
-| VRAM del catálogo | 4,477 MB | **525 MB** |
-| Peor par residente | — | ~186 MB |
-| En disco | 165 MB | 57 MB |
-
-La salida va a **`public/gltf/optimized/`, gitignoreada y generada** — como
-`playlist.json`. Las fuentes de al lado son lo versionado. `src/assets.ts`
-apunta a las optimizadas; apuntarlo a las crudas mata la app en el cuarto auto.
-
-**Queda disponible otro ~8×** con KTX2/BasisU, que se queda comprimido en VRAM y
-que el loader de IWSDK ya soporta. Necesita un binario encoder nativo
-(`toktx`, o un build nativo de gltfpack — el de npm viene **sin** BasisU).
-
-Estado actual medido: **87–112 draw calls**, memoria plana a lo largo de una
-vuelta completa al carrusel (`geometries` estable en ~162).
+La salida va sin ninguna extensión de compresión: archivos más grandes por LAN,
+cero dependencias de decoder, nada que descargar. Las texturas ya venían en WebP
+y solo se tocan si superan 1024 (color) o 512 (datos).
 
 ---
 
 ## 7. Trampas encontradas — no las redescubras
 
-### Rig y locomoción
+### Locomoción y entornos
 
-- **`player.rotation.y = θ` es silenciosamente un no-op** cuando algo tocó el
-  quaternion desde la última lectura: el resync interno corre primero y descarta
-  lo que escribiste. Escribe siempre el **quaternion**.
-- **La posición del rig va por `LocomotionSystem.setPlayerPosition()`**.
-  Escribir `player.position` es inútil: el locomotor lo re-estampa cada frame.
-- **Para anclar al jugador hay que pausar `LocomotionSystem` entero**, no solo
-  los sistemas de input. Si sigue corriendo, la gravedad (9.81) lo arrastra
-  fuera del asiento en ~1 s.
-- **`TurnPivotCapture`/`TurnPivotCorrect` también hay que pausarlos**: el
-  segundo escribe `player.position` con prioridad 10.
-- **`SlideSystem` y `TeleportSystem` se registran de forma asíncrona**, después
-  de que el locomotor inicializa. `getSystem()` puede devolver `undefined`.
-- **El ancla del asiento es el ojo, pero `setPlayerPosition` coloca el origen
-  del rig**: hay que restar el offset de la cabeza en **los tres ejes**. Dejar Y
-  fuera te deja 1.6 m sobre el techo mirando hacia abajo.
+- **`LocomotionEnvironment` fusiona la geometría del modelo** con
+  `BufferGeometryUtils.mergeGeometries` para construir su malla de colisión, y
+  **eso revienta si dos primitivas no coinciden en qué atributos tienen**. La
+  galería traía UV en 3 de 7 mallas; el estudio traía `TANGENT` y `TEXCOORD_1`
+  en una sola. El fallo es silencioso del peor modo: **el modelo se ve perfecto,
+  el error queda en consola, y el jugador atraviesa el suelo.**
+  `harmoniseAttributes()` en `scripts/prepare-models.mjs` rellena los huecos en
+  lugar de quitar los sobrantes, porque quitar `TEXCOORD_1` desmapearía en
+  silencio cualquier material que muestree de ahí.
 
 ### Assets y memoria
 
 - **`AssetManager.loadGLTFById()` devuelve el objeto cacheado, no un clon.**
   Mutar un material muta la caché para toda la sesión.
-- **`getGLTF()` clona solo el árbol de nodos**; geometrías, materiales y
-  animaciones siguen compartidos. No protege un material de ser mutado.
 - **Excluye `envMap` del barrido de texturas al liberar**: apunta al IBL
   compartido y disponerlo apaga todos los demás materiales.
+- **La caché HTTP del navegador gestionado es real.** Si regeneras un `.glb` y el
+  error de antes sigue apareciendo, reinicia el dev server (`dev down` + `dev
+  up`); un reload normal puede servirte el archivo viejo.
 
 ### Render
 
 - **Las sombras están apagadas salvo que el documento de escena las declare.**
-  `castShadow`, `shadowBias` y `shadowMapSize` en una luz no hacen **nada** sin
-  `environment.shadows: true`. No avisa.
+  `castShadow` en una luz no hace **nada** sin `environment.shadows: true`.
 - **`GLTFLoader` deja todo en `castShadow: false`**, y un modelo cargado por
-  `AssetManager` no pasa por la ruta que aplica `content.castShadow`. Hay que
-  recorrerlo a mano.
-- **El `yawDeg` aplicado antes del fit falsea la escala**: el fit escala para que
-  el *bounding box medido* dé 4.6 m, y un box alrededor de un auto ya rotado es
-  más grande que el auto. Por eso el yaw vive en un pivote **encima** del fit.
-- Varios modelos traen **la firma del autor como un quad de 2 triángulos y
-  altura cero** en el suelo, que descentra el modelo. Hay un test dedicado.
-- **Bloom con `EffectComposer` normalmente no es viable en sesión XR**: pelea
-  con el framebuffer estéreo. Alternativa: geometría emisiva *unlit* con valores
-  >1 bajo ACES, más cartas aditivas.
+  `AssetManager` no pasa por la ruta que aplica `content.castShadow`.
+- **Una cámara fuera de la sala no renderiza nada y no avisa.** La pared trasera
+  de la galería está en z = +21.7; la vista `hero` estaba en z = 22 y devolvía
+  una imagen gris vacía.
+- **`scene_get_render_stats` falla** ("Cannot read properties of undefined") una
+  vez que los marcadores de inspección están en escena. Usa `browser_screenshot`
+  y `ecs_find_entities`.
 
 ### UIKitML
 
+- **La fuente DM Sans empaquetada no tiene `·` ni `—`.** Salen como "Missing
+  glyph info" en consola y como huecos en el panel. Tampoco te fíes de los
+  acentos: **todo el texto de interfaz está deliberadamente sin tildes.**
 - **Un botón en una segunda fila bajo la fila principal se renderiza, y
   `getElementById` lo resuelve, pero nunca recibe clics de ray.** Todos los
-  controles en UNA fila, o en un panel aparte.
-- **El parser de `<style>` rechaza comentarios `/* */`** y eso tumba la carga
-  del **nivel entero**, no solo del panel.
-- Los iconos Lucide ignoran el dimensionado por clase y por atributo.
+  controles en UNA fila, o en un panel aparte. Por eso los paneles nunca ocultan
+  una fila: la blanquean, para que la fila de botones no se mueva.
+- **El parser de `<style>` rechaza comentarios `/* */`** y eso tumba la carga del
+  **nivel entero**, no solo del panel.
 - Las medidas numéricas son centímetros. Los paneles son de una cara, hacia +Z.
-
-### Animación
-
-- **Una `AnimationAction` pausada no aporta nada al mixer.** Mover `action.time`
-  a mano con la acción pausada no hace nada; la dirección se maneja con
-  `timeScale`.
 
 ### Emulador XR
 
 - Las poses de los dispositivos son **relativas al jugador, no al mundo**.
-- `xr_select` (pulsación con duración real) sí dispara clics de UIKit; escribir
-  el valor de select de golpe, no.
-- **El probe de `render-stats` falla con la sesión XR activa** (artefacto de los
-  gizmos del emulador, no del código). Mide fuera de XR.
+- `xr_set_gamepad_state` (poner el botón a 1 y luego a 0) sí dispara
+  `getButtonDown`. Es la forma práctica de recorrer el carrusel sin visor.
 
 ---
 
-## 8. Lo que NO está construido
+## 8. Lo que falta o es discutible
 
-Planeado, diseñado y deliberadamente sin hacer:
-
-- **Audio de motor.** Las fuentes son mods de NFS en `.abk`/`.gin`. `vgmstream`
-  decodifica ambos (`ea_schl_abk.c` y `gin.c`), pero el `.gin` es audio
-  **granular** — granos más curvas para resintetizar según RPM — así que da
-  material crudo, no un ralentí listo. Además es material con copyright de EA.
-- **Faros y calaveras.** Necesitan nombres de material por auto, que hay que
-  recoger modelo por modelo con `npm run inspect`.
-- **Pintura inmersiva con pistola.** Hay un plan aprobado y sin implementar en
-  `docs/plan-cambio-de-color-de-pintura.md`, que ya trae **el nombre exacto del
-  material de carrocería de 6 de los 8 autos**. Nota de diseño: la pistola debe
-  agarrarse con **squeeze** (`OneHandGrabbable`), porque un objeto agarrado de
-  cerca **no recibe las etiquetas `Hovered`/`Pressed`** y el gatillo tiene que
-  quedar libre para rociar; se lee vía `getHolderHand()` + el gamepad.
-- **Props agarrables, intro cinemático y easter egg.**
-- Los **otros siete asientos** sin calibrar.
+- **El vehículo blindado de oruga** no es maquinaria industrial y es la única
+  entrada cuya afirmación 1:1 es floja: sus proporciones no coinciden con ningún
+  vehículo en servicio. Borra su entrada de `MACHINE_CATALOG` para sacarlo del
+  carrusel; nada más lo referencia.
+- **Los anclajes de los hotspots están puestos a ojo** en espacio normalizado.
+  Caen en la parte correcta de la máquina, pero afinarlos requiere verlos en el
+  visor.
+- **Las métricas de monitoreo son simuladas** y el panel lo dice.
+- **El brazo de precisión se ve rojo.** Puede ser el modelo o puede ser efecto de
+  haberle quitado `KHR_materials_transmission`. Sin revisar.
+- Los paneles están colocados a ojo delante del spawn; se mueven en el editor.
 
 ---
 
@@ -284,67 +273,55 @@ npx iwsdk dev up
 
 Luego **`browser_screenshot` contra el runtime**. El render del **editor no
 ejecuta los sistemas de la app**, así que `scene_screenshot` nunca puede probar
-que algo *se comporta*. `renderStats.visibleNodeIds` es el detector de fallos
-silenciosos: un nodo que no aparece ahí no se renderizó, aunque `valid` sea true.
+que algo *se comporta*.
 
-MCP y CLI son la misma superficie (`scene_render_file` ≡ `npx iwsdk scene
-render-file`). MCP para llamadas sueltas y para recibir la imagen inline; CLI
-para bucles, scripts y respuestas grandes que conviene filtrar.
+### Scripts
+
+| | |
+| --- | --- |
+| `npm run dev` | Dev server gestionado (corre `models` antes) |
+| `npm run models` | Prepara los modelos (incremental; `models:force` rehace todo) |
+| `npm run inspect` | Reporta las dimensiones 1:1 de cada máquina ya ajustada |
+| `npm run typecheck` | `tsc --noEmit` |
+
+`npm run inspect -- gmc_sierra 28.8` prueba un `alignYawDeg` candidato: el bueno
+es el que minimiza el ancho reportado.
 
 ### Convenciones
 
 - Sistemas con queries, nunca arrays de entidades a mano.
-- **Nunca asignar memoria en `update()`.** Preasignar en `init()` como
-  propiedades de clase.
+- **Nunca asignar memoria en `update()`.** Preasignar en `init()`.
 - `signal.peek()` en `update()`; `.value` añade suscripción por frame.
 - Toda suscripción se desregistra en `this.cleanupFuncs`.
 - Assets por `AssetManager`/manifiesto, nunca un `GLTFLoader` crudo.
 - Entidades con `world.createTransformEntity()`, nunca `scene.add()`.
 - `RayInteractable`, nunca un `Raycaster` manual.
-- VR apunta a 72–90 fps: 11–14 ms por frame. Una asignación por frame es un bug.
-
-### Dónde mirar
-
-| | |
-| --- | --- |
-| `CLAUDE.md` | Convenciones de IWSDK y tabla de fallos silenciosos |
-| `AGENTS.md` | Copia neutral del anterior para otros agentes |
-| `.claude/rules/` | Reglas por ruta: `assets-and-manifest`, `ecs-api`, `scene-json`, `uikitml`. Se cargan solas al tocar los archivos que cubren |
-| `.claude/skills/` | `iwsdk-scene-composer`, `iwsdk-ui`, `iwsdk-grab`, `iwsdk-ray`, `iwsdk-physics`, `iwsdk-debug`, `iwsdk-depth-occlusion`, `iwsdk-planner`, `iwsdk-art-direction` |
-| `docs/` | Plan de cambio de pintura (aprobado, sin implementar) |
-| `README.md` | Cara pública del proyecto |
-
-**Antes de improvisar en un dominio que ya tiene skill, invoca el skill.** El
-fallo que más caro sale es escribir JSON de escena, un panel UIKitML, un cuerpo
-físico o un pase de iluminación a mano porque el enfoque ingenuo parecía viable.
+- VR apunta a 72–90 fps: 11–14 ms por frame.
 
 ### Controles
 
 | Entrada | Acción |
 | --- | --- |
-| **A** derecha | Auto siguiente |
-| **B** derecha | Entrar / salir del asiento |
-| **X** izquierda | Girar la tarima |
-| **Y** izquierda | Abrir / cerrar puertas |
-| Sticks | Locomoción — **no tocarlos** |
-| Panel *Prev* | Auto anterior |
+| **A** derecha | Equipo siguiente |
+| **B** derecha | Equipo anterior |
+| **X** izquierda | Una vuelta completa de la máquina |
+| **Y** izquierda | Animar / pausar la máquina, si trae animación |
+| Sticks | Locomoción |
+| Panel *Cambiar entorno* | Galería ↔ nave industrial |
+| Panel *Animar* | Play/pausa de la animación (se atenúa si no hay) |
+| Botones SSO/TEC/MTO | Punto de inspección |
 
-En navegador: **←/→** cambian de auto, **R** gira, **E** puertas, **B** asiento.
+En navegador: **←/→** cambian de equipo, **R** da una vuelta, **E** anima, **T** entorno.
 
 ---
 
 ## 10. Cosas sueltas que conviene saber
 
-- **No hay `LICENSE`.** Los modelos son descargas de terceros con sus propias
-  licencias.
-- **Los `.glb` originales pesan ~136 MB y están versionados.** Los optimizados
-  se generan y están ignorados.
-- **Los `.mp3` no están en el repo** (música comercial, repo público). Se dejan
-  en `public/audio/music/` y se corre `npm run music`.
-- `RobotSystem`, y los assets `robot` / `environment-desk` / `plant-sansevieria`
-  / `webxr-banner`, son restos del scaffold. Son `lazy`, así que no cuestan nada
-  en runtime, pero son código muerto.
-- La lección general del proyecto: casi todo lo que se arregló —los 3.4 GB, las
-  sombras apagadas, los autos de tamaños distintos, las calcomanías
-  descentrando modelos— era **invisible leyendo el código y evidente en cuanto
-  hubo números**. Mide antes de tocar.
+- **No hay `LICENSE`.** Los modelos son descargas de terceros (Sketchfab,
+  CC-BY-4.0 en los que declaran licencia) con sus propias condiciones.
+- Solo dos máquinas traen animación: el brazo robótico industrial (un clip) y el
+  de precisión (cuatro, uno por herramienta). El botón *Ciclo* se atenúa solo en
+  las demás.
+- La lección general del proyecto sigue siendo la misma que en su versión
+  anterior: casi todo lo que se arregló era **invisible leyendo el código y
+  evidente en cuanto hubo números**. Mide antes de tocar.
