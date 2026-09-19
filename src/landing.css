@@ -408,22 +408,6 @@ body {
   border-top: 1px solid rgba(255, 255, 255, 0.09);
 }
 
-/*
- * The canvas is fixed and full-viewport, so any strip the page does not cover
- * shows the showroom through it — on a tall window, that is everything below the
- * footer. This paints a viewport's worth of ink past the end of the page.
- */
-.sheet::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  height: 100vh;
-  background: var(--ink-2);
-  pointer-events: none;
-}
-
 /* A short fade above it so the hero does not end on a hard edge. */
 .sheet::before {
   content: '';
@@ -895,17 +879,41 @@ body {
 /* --- footer -------------------------------------------------------------- */
 
 .foot {
-  padding: 48px var(--gutter) 60px;
+  padding: 56px var(--gutter) 48px;
   border-top: 1px solid rgba(255, 255, 255, 0.09);
   background: var(--ink-2);
+  /*
+   * Covers the strip below the page on a window taller than the content. A
+   * box-shadow paints outside the element without joining the layout or the
+   * scrollable area, which an absolutely positioned filler does not.
+   */
+  box-shadow: 0 60vh 0 60vh var(--ink-2);
 }
 
 .foot-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+}
+
+.foot p.foot-quote {
+  margin: 0;
+  max-width: 20ch;
+  font-size: clamp(26px, 3.4vw, 44px);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.foot-meta-row {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
   align-items: baseline;
   justify-content: space-between;
+  padding-top: 26px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .foot p {
