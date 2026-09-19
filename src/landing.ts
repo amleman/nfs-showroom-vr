@@ -69,27 +69,47 @@ const SCENE_PANELS = [
  *
  * All of them are about the medium rather than about the machines, because that
  * is the part a visitor cannot get from the rest of the page: a deck is
- * information, and this is somewhere you have been. Each is split so the second
- * half can carry the gradient — the turn in the sentence and the turn in the
- * colour land together.
+ * information, and this is somewhere you have been.
+ *
+ * Each is a setup and a turn, not a slogan. The first half earns the second, and
+ * the split is where the gradient starts — so the turn in the sentence and the
+ * turn in the colour land together.
  */
 const CLOSING_LINES: readonly [string, string][] = [
-  ['Quien puede llevarte', 'no necesita convencerte.'],
-  ['No expliques la magnitud.', 'Ponla delante.'],
-  ['Toda descripción es una promesa;', 'solo la presencia la paga.'],
-  ['Olvidarás lo que te dijeron;', 'no olvidarás dónde estabas.'],
-  ['La memoria no guarda argumentos:', 'guarda lugares.'],
-  ['Lo que te explican lo guarda la memoria;', 'lo que te ocurre lo guarda el cuerpo.'],
-  ['Hay distancias', 'que ningún informe recorre.'],
-  ['Entre saber y haber estado', 'hay un paso que ninguna página da.'],
-  ['El que mira vuelve informado;', 'el que entra vuelve cambiado.'],
-  ['No preguntes cuánto mide.', 'Ponte al lado.'],
-  ['Recuerda que nadie respeta', 'lo que nunca tuvo cerca.'],
-  ['Acércate.', 'Lo demás es literatura.'],
+  [
+    'Puedes describir una máquina durante una hora y no haber dicho nada de su tamaño.',
+    'Quien puede llevarte no necesita convencerte.',
+  ],
+  [
+    'De lo que te explican queda un resumen; de lo que te ocurre queda el lugar.',
+    'La memoria no guarda argumentos: guarda lugares.',
+  ],
+  [
+    'Hay distancias que ningún informe recorre. Entre saber la cifra y haber estado al lado hay un paso,',
+    'y ese paso no lo da ninguna página.',
+  ],
+  [
+    'Nadie respeta de verdad lo que solo ha leído. El riesgo que se entiende de lejos nunca llegó a entenderse:',
+    'se aprende teniéndolo enfrente, o se aprende tarde.',
+  ],
+  [
+    'El que mira vuelve informado; el que entra vuelve distinto.',
+    'Ninguna cifra ha cambiado nunca a nadie.',
+  ],
+  [
+    'No preguntes cuánto mide. Ponte al lado y deja que te mida a ti.',
+    'Lo demás es literatura.',
+  ],
 ];
 
-/** Seconds each line holds before the next one comes up. */
-const QUOTE_INTERVAL = 6500;
+/**
+ * How long each one holds, in milliseconds.
+ *
+ * Long enough to read two sentences without hurrying. An earlier version cycled
+ * single clauses every six seconds and they went past before they meant
+ * anything — a sentence with no setup is not an aphorism, it is a fragment.
+ */
+const QUOTE_INTERVAL = 9500;
 /** Must match the `quote-out` animation in landing.css. */
 const QUOTE_FADE = 300;
 

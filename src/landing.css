@@ -906,15 +906,15 @@ body {
  */
 .foot p.foot-quote {
   margin: 0 auto;
-  max-width: 30ch;
-  min-height: 2.34em;
+  max-width: 46ch;
+  min-height: 4.1em;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  font-size: clamp(21px, 2.3vw, 33px);
-  line-height: 1.17;
+  font-size: clamp(18px, 1.9vw, 27px);
+  line-height: 1.32;
   letter-spacing: -0.03em;
   font-weight: 700;
   color: #ffffff;
@@ -922,6 +922,7 @@ body {
 
 .foot-quote .grad {
   display: block;
+  margin-top: 0.34em;
 }
 
 .foot-quote.is-in {
