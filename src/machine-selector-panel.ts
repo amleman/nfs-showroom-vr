@@ -106,14 +106,15 @@ export class MachineSelectorPanelSystem extends createSystem({}) {
           cycleButton.setProperties({
             opacity: hasCycle ? 1 : DISABLED_OPACITY,
           });
-          cycleLabel?.setProperties({ text: hasCycle ? 'Animar' : 'Sin ciclo' });
         }),
         // The label names the action the button will perform, not the state it
-        // is in: on a two-state control those read the same way round to nobody.
+        // is in. Both words are six letters on purpose: "Sin ciclo" wrapped to
+        // two lines inside a 78px button, which made the button taller, which
+        // made the control row taller — and a control row that moves is a
+        // control row whose buttons are somewhere else by the time the ray
+        // lands. The unavailable case is carried by the dimming above instead.
         swapper.cycleRunning.subscribe((running) => {
-          if (swapper.hasCycle.peek()) {
-            cycleLabel?.setProperties({ text: running ? 'Pausar' : 'Animar' });
-          }
+          cycleLabel?.setProperties({ text: running ? 'Pausar' : 'Animar' });
         }),
       );
     }

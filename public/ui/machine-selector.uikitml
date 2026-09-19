@@ -137,7 +137,7 @@
       <ButtonLabel class="button-label">Girar</ButtonLabel>
     </Button>
     <Button id="cycle-machine" class="nav-button" variant="secondary" size="sm">
-      <ButtonLabel id="cycle-machine-label" class="button-label">Ciclo</ButtonLabel>
+      <ButtonLabel id="cycle-machine-label" class="button-label">Animar</ButtonLabel>
     </Button>
     <Button id="next-machine" class="nav-button" variant="primary" size="sm">
       <ButtonLabel class="button-label">Siguiente</ButtonLabel>
