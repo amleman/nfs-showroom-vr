@@ -64,6 +64,35 @@ const SCENE_PANELS = [
   'inspection-panel',
 ];
 
+/**
+ * The closing lines, rotated in the footer.
+ *
+ * All of them are about the medium rather than about the machines, because that
+ * is the part a visitor cannot get from the rest of the page: a deck is
+ * information, and this is somewhere you have been. Each is split so the second
+ * half can carry the gradient — the turn in the sentence and the turn in the
+ * colour land together.
+ */
+const CLOSING_LINES: readonly [string, string][] = [
+  ['Quien puede llevarte', 'no necesita convencerte.'],
+  ['No expliques la magnitud.', 'Ponla delante.'],
+  ['Toda descripción es una promesa;', 'solo la presencia la paga.'],
+  ['Olvidarás lo que te dijeron;', 'no olvidarás dónde estabas.'],
+  ['La memoria no guarda argumentos:', 'guarda lugares.'],
+  ['Lo que te explican lo guarda la memoria;', 'lo que te ocurre lo guarda el cuerpo.'],
+  ['Hay distancias', 'que ningún informe recorre.'],
+  ['Entre saber y haber estado', 'hay un paso que ninguna página da.'],
+  ['El que mira vuelve informado;', 'el que entra vuelve cambiado.'],
+  ['No preguntes cuánto mide.', 'Ponte al lado.'],
+  ['Recuerda que nadie respeta', 'lo que nunca tuvo cerca.'],
+  ['Acércate.', 'Lo demás es literatura.'],
+];
+
+/** Seconds each line holds before the next one comes up. */
+const QUOTE_INTERVAL = 6500;
+/** Must match the `quote-out` animation in landing.css. */
+const QUOTE_FADE = 300;
+
 /** Scroll distance, as a fraction of the viewport, before the dock appears. */
 const DOCK_THRESHOLD = 0.55;
 /** Peak hero drift from the pointer, in pixels. */
@@ -142,6 +171,7 @@ export function startLanding(world: World): void {
 
   bindEntryButtons(world, enter);
   buildCatalog(enter);
+  bindClosingLines();
   bindParallax();
   bindReveal();
   bindDock(dock);
@@ -219,6 +249,60 @@ function buildCatalog(
     unit.append(badge, name, reference, dims, foot);
     grid.append(unit);
   });
+}
+
+/**
+ * Rotate the footer's closing line.
+ *
+ * Pauses on hover, so somebody who is part way through reading one does not
+ * lose it, and starts from the strongest line rather than a random one — the
+ * first is the one most visitors will be the only one to see.
+ */
+function bindClosingLines(): void {
+  const element = document.getElementById('foot-quote');
+  if (element == null || CLOSING_LINES.length < 2) {
+    return;
+  }
+
+  let index = 0;
+  let timer = 0;
+  let paused = false;
+
+  const render = (): void => {
+    const [lead, accent] = CLOSING_LINES[index];
+    element.textContent = `${lead} `;
+    const span = document.createElement('span');
+    span.className = 'grad';
+    span.textContent = accent;
+    element.append(span);
+  };
+
+  const advance = (): void => {
+    if (paused) {
+      return;
+    }
+    element.classList.remove('is-in');
+    element.classList.add('is-out');
+    window.setTimeout(() => {
+      index = (index + 1) % CLOSING_LINES.length;
+      render();
+      element.classList.remove('is-out');
+      // Restart the animation: without the reflow the class goes back on in the
+      // same frame it came off and nothing plays.
+      void element.offsetWidth;
+      element.classList.add('is-in');
+    }, QUOTE_FADE);
+  };
+
+  element.addEventListener('pointerenter', () => {
+    paused = true;
+  });
+  element.addEventListener('pointerleave', () => {
+    paused = false;
+  });
+
+  timer = window.setInterval(advance, QUOTE_INTERVAL);
+  window.addEventListener('pagehide', () => window.clearInterval(timer));
 }
 
 /**

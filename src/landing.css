@@ -896,14 +896,62 @@ body {
   gap: 34px;
 }
 
+/*
+ * The rotator. Full width and centred, because an aphorism with room around it
+ * reads as a statement and one crammed into a column reads as a caption.
+ *
+ * The min-height is what stops the footer jumping every six seconds: the lines
+ * are different lengths and some wrap to two, so the box is sized for two from
+ * the start.
+ */
 .foot p.foot-quote {
-  margin: 0;
-  max-width: 24ch;
-  font-size: clamp(26px, 3.2vw, 42px);
-  line-height: 1.14;
+  margin: 0 auto;
+  max-width: 30ch;
+  min-height: 2.34em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: clamp(21px, 2.3vw, 33px);
+  line-height: 1.17;
   letter-spacing: -0.03em;
   font-weight: 700;
   color: #ffffff;
+}
+
+.foot-quote .grad {
+  display: block;
+}
+
+.foot-quote.is-in {
+  animation: quote-in 620ms cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+.foot-quote.is-out {
+  animation: quote-out 300ms ease both;
+}
+
+@keyframes quote-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes quote-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
 .foot-meta-row {
@@ -991,6 +1039,14 @@ body {
   .hero-scroll-rail,
   .eyebrow-dot {
     animation: none;
+  }
+
+  /* The quotes still rotate, they just stop moving while they do it. */
+  .foot-quote.is-in,
+  .foot-quote.is-out {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 
