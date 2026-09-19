@@ -90,6 +90,13 @@
         </div>
       </section>
 
+      <!--
+        Everything below the hero sits on an opaque sheet. The canvas is the
+        backdrop for the first screen only; past that it is behind body copy,
+        and body copy over a moving 3D render is unreadable at any opacity.
+      -->
+      <div class="sheet">
+
       <!-- KPI banner -->
       <section class="band band--tight">
         <div class="wrap">
@@ -171,7 +178,9 @@
             entre una galería de exhibición de 50 × 43 m con 14 m de altura libre
             y una nave industrial de 21 m de ancho.
           </p>
-          <div id="catalog" class="catalog"></div>
+          <div class="catalog-shell">
+            <div id="catalog" class="catalog"></div>
+          </div>
         </div>
       </section>
 
@@ -222,9 +231,11 @@
             Construido sobre el Immersive Web SDK de Meta y three.js. Corre en el
             navegador de Meta Quest 3 y en cualquier navegador de escritorio.
           </p>
-          <p class="foot-meta">Showroom Industrial VR · 2026</p>
+          <p class="foot-meta">IngVR Studio · 2026</p>
         </div>
       </footer>
+
+      </div>
     </main>
 
     <!--

@@ -24,6 +24,7 @@ import { AmbienceSystem } from './ambience.js';
 import { DesktopNavigationSystem } from './desktop-navigation.js';
 import { MACHINE_CATALOG } from './machine-catalog.js';
 import { MachineSwapperSystem } from './machine-swapper.js';
+import { MachineTitleSystem } from './machine-title.js';
 import './landing.css';
 
 /**
@@ -49,6 +50,20 @@ const FOOTPRINT: Record<string, { length: number; width: number }> = {
   'machine-tracked-vehicle': { length: 8.9, width: 4.0 },
 };
 
+/**
+ * The scene's own panels, hidden while the landing page is up.
+ *
+ * The showroom renders behind the marketing copy the whole time, which is the
+ * point — but the spatial console is three large light-coloured panels hanging
+ * in mid-air, and from the hero camera they land across the machine and under
+ * the page's own text. The machine should be the only thing back there.
+ */
+const SCENE_PANELS = [
+  'machine-selector-panel',
+  'machine-specs-panel',
+  'inspection-panel',
+];
+
 /** Scroll distance, as a fraction of the viewport, before the dock appears. */
 const DOCK_THRESHOLD = 0.55;
 /** Peak hero drift from the pointer, in pixels. */
@@ -70,6 +85,7 @@ export function startLanding(world: World): void {
   // reading the landing would otherwise walk the visitor away from the spawn
   // before they ever saw it.
   setLocomotion(world, false);
+  setSceneUi(world, false);
 
   const backChip = createBackChip();
   let entered = false;
@@ -91,6 +107,7 @@ export function startLanding(world: World): void {
     container.style.pointerEvents = 'auto';
     document.body.style.overflow = 'hidden';
     setLocomotion(world, true);
+    setSceneUi(world, true);
     if (dock != null) {
       dock.hidden = true;
     }
@@ -111,6 +128,7 @@ export function startLanding(world: World): void {
     container.style.pointerEvents = 'none';
     document.body.style.overflow = '';
     setLocomotion(world, false);
+    setSceneUi(world, false);
     backChip.hidden = true;
     window.scrollTo(0, 0);
   };
@@ -201,6 +219,33 @@ function buildCatalog(
     unit.append(badge, name, reference, dims, foot);
     grid.append(unit);
   });
+}
+
+/**
+ * Show or hide the scene's spatial UI.
+ *
+ * Retried on a few frames rather than applied once: the level loads
+ * asynchronously, so at the moment the landing page starts, none of these scene
+ * objects exist yet.
+ */
+function setSceneUi(world: World, visible: boolean): void {
+  let attempts = 0;
+  const apply = (): void => {
+    let found = 0;
+    for (const id of SCENE_PANELS) {
+      const panel = world.getSceneObject(id);
+      if (panel != null) {
+        panel.visible = visible;
+        found += 1;
+      }
+    }
+    world.getSystem(MachineTitleSystem)?.setSuppressed(!visible);
+    attempts += 1;
+    if (found < SCENE_PANELS.length && attempts < 240) {
+      requestAnimationFrame(apply);
+    }
+  };
+  apply();
 }
 
 /**

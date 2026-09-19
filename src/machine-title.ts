@@ -55,6 +55,8 @@ export class MachineTitleSystem extends createSystem({}) {
   private canvas: HTMLCanvasElement | undefined;
   private context: CanvasRenderingContext2D | null = null;
   private texture: CanvasTexture | undefined;
+  /** Held down while the landing page is up: the sign is scene furniture. */
+  private suppressed = false;
 
   /** Preallocated: `update` runs every frame and must not allocate. */
   private readerWorld!: Vector3;
@@ -109,7 +111,7 @@ export class MachineTitleSystem extends createSystem({}) {
           Math.max(MIN_HEIGHT, (swapper.mountedFit?.height ?? 0) + HEADROOM),
         );
         if (this.sign != null) {
-          this.sign.visible = true;
+          this.sign.visible = !this.suppressed;
         }
       }),
       // A name with no machine under it is a caption for empty floor.
@@ -121,9 +123,23 @@ export class MachineTitleSystem extends createSystem({}) {
     );
   }
 
+  /**
+   * Hide or show the sign from outside.
+   *
+   * The landing page uses this: the showroom renders behind the marketing copy,
+   * and a six-metre name plate hanging across the machine is the one thing in
+   * the scene that competes with the page's own headline.
+   */
+  setSuppressed(suppressed: boolean): void {
+    this.suppressed = suppressed;
+    if (this.sign != null && suppressed) {
+      this.sign.visible = false;
+    }
+  }
+
   update(): void {
     const sign = this.sign;
-    if (sign == null || !sign.visible) {
+    if (sign == null || this.suppressed || !sign.visible) {
       return;
     }
     // Over the machine, which is always at the origin — the turntable turns the

@@ -1,40 +1,53 @@
 /*
  * Landing page for the browser: plain DOM over the live canvas.
  *
- * One dark surface end to end, with every container built from the same glass
- * recipe — translucent slate, a 16px backdrop blur and a hairline border. That
- * is not only a style choice: the showroom is rendering behind this page the
- * whole time, and a translucent panel keeps the machine visible through the
- * copy instead of covering it with a white block.
+ * ## The rule this file got wrong once
  *
- * Accents are one blue and one cyan, used only on data and on the things you
- * can press. Everything else is grey.
+ * The canvas is the backdrop for the **first screen only**. Below the hero every
+ * section sits on an opaque sheet, because body copy over a moving 3D render
+ * cannot be made readable by tuning its colour — the background keeps changing
+ * underneath it. The first version of this page removed the solid section
+ * backgrounds and put nothing in their place, so every paragraph floated over
+ * the showroom and the whole page read as one pile.
+ *
+ * Containers are all the same glass recipe: near-opaque slate, a 20px backdrop
+ * blur and a hairline border. Text is white, or near-white; the faint value is
+ * for units and timestamps and nothing else. Accents are one light blue and one
+ * cyan, used only on data and on things you can press.
  *
  * Nothing here is UIKitML, so accents and typographic punctuation are safe —
  * that restriction belongs to the spatial panels and their bundled font.
  */
 
 :root {
-  --ink: #0a0d14;
-  --ink-2: #0d1220;
-  --text: #eaf0fb;
-  --text-dim: #97a3bb;
-  --text-faint: #5f6c85;
+  --ink: #0a0f1a;
+  --ink-2: #070b13;
+
+  /*
+   * Three text values and no more. Everything that carries meaning is white and
+   * the dim value is still near-white. Slate greys were perfectly legible on a
+   * solid panel and vanished the moment the panel went translucent over a bright
+   * render.
+   */
+  --text: #ffffff;
+  --text-dim: #dce6f5;
+  --text-faint: #a8bad6;
 
   --accent: #0066ff;
-  --accent-bright: #3b8bff;
+  --accent-bright: #60a5fa;
   --cyan: #22d3ee;
 
   /* The glass recipe, defined once and used everywhere. */
-  --glass-bg: rgba(15, 23, 42, 0.65);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.1);
-  --glass-blur: blur(16px);
+  --glass-bg: rgba(10, 15, 26, 0.88);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.15);
+  --glass-blur: blur(20px);
   --glass-radius: 18px;
 
   --font: 'DM Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', 'Cascadia Mono', 'SF Mono', Consolas, monospace;
 
   --gutter: clamp(20px, 5vw, 80px);
+  --bar-height: 64px;
 }
 
 * {
@@ -55,7 +68,7 @@ body {
 }
 
 ::selection {
-  background: rgba(0, 102, 255, 0.35);
+  background: rgba(0, 102, 255, 0.4);
   color: #fff;
 }
 
@@ -73,11 +86,7 @@ body {
   height: 100%;
 }
 
-/*
- * Sits between the canvas and the copy: a faint engineering grid and two soft
- * colour washes that give the dark sections somewhere to sit without hiding the
- * machine behind them.
- */
+/* A faint engineering grid and two colour washes, behind the hero only. */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -93,8 +102,8 @@ body {
     linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
   background-size: 64px 64px;
-  mask-image: radial-gradient(120% 90% at 50% 0%, #000 20%, transparent 78%);
-  opacity: 0.5;
+  mask-image: radial-gradient(90% 70% at 50% 0%, #000 8%, transparent 68%);
+  opacity: 0.35;
 }
 
 .backdrop-glow {
@@ -103,19 +112,19 @@ body {
   height: 62vw;
   border-radius: 50%;
   filter: blur(120px);
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
 .backdrop-glow--a {
-  top: -22vw;
-  left: -14vw;
-  background: radial-gradient(circle, rgba(0, 102, 255, 0.55), transparent 62%);
+  top: -24vw;
+  left: -16vw;
+  background: radial-gradient(circle, rgba(0, 102, 255, 0.5), transparent 62%);
 }
 
 .backdrop-glow--b {
-  bottom: -28vw;
-  right: -18vw;
-  background: radial-gradient(circle, rgba(34, 211, 238, 0.3), transparent 62%);
+  bottom: -30vw;
+  right: -20vw;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.24), transparent 62%);
 }
 
 .landing {
@@ -125,7 +134,7 @@ body {
 }
 
 /* Handed over to the scene: the page gets out of the way entirely, and every
-   fixed child of it — the header, the dock — goes with it. */
+   sticky or fixed child of it goes with it. */
 .landing[data-state='entered'] {
   display: none;
 }
@@ -141,7 +150,7 @@ body {
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
-/* A one-pixel highlight along the top edge. It is what makes a flat translucent
+/* A one-pixel highlight along the top edge. It is what makes a translucent
    rectangle read as a pane of glass rather than a div with opacity. */
 .glass::before {
   content: '';
@@ -152,25 +161,32 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(255, 255, 255, 0.28),
+    rgba(255, 255, 255, 0.32),
     transparent
   );
   pointer-events: none;
 }
 
-/* --- topbar -------------------------------------------------------------- */
+/* --- navbar -------------------------------------------------------------- */
 
+/*
+ * Sticky and opaque, not fixed and clear. It keeps its own row in the layout so
+ * nothing ever slides underneath it, and the brand reads the same over the hero,
+ * over the sheet and over the machine.
+ */
 .topbar {
-  position: fixed;
-  z-index: 5;
+  position: sticky;
+  z-index: 100;
   top: 0;
-  left: 0;
-  right: 0;
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 20px var(--gutter);
-  pointer-events: none;
+  height: var(--bar-height);
+  padding: 0 var(--gutter);
+  background: rgba(10, 15, 26, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .brand {
@@ -179,19 +195,17 @@ body {
   gap: 12px;
   text-decoration: none;
   color: inherit;
-  pointer-events: auto;
 }
 
 .brand-mark {
-  position: relative;
   display: grid;
   place-items: center;
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(145deg, rgba(0, 102, 255, 0.85), rgba(34, 211, 238, 0.5));
-  box-shadow: 0 0 22px rgba(0, 102, 255, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(145deg, #0066ff, rgba(34, 211, 238, 0.7));
+  box-shadow: 0 0 20px rgba(0, 102, 255, 0.5);
 }
 
 .brand-mark-core {
@@ -205,7 +219,7 @@ body {
 .brand-word {
   font-size: 19px;
   letter-spacing: -0.02em;
-  color: var(--text-dim);
+  color: #c3d2e8;
   white-space: nowrap;
 }
 
@@ -221,22 +235,21 @@ body {
   letter-spacing: 0.18em;
   padding: 6px 11px;
   border-radius: 999px;
-  color: var(--cyan);
-  border: 1px solid rgba(34, 211, 238, 0.42);
-  background: rgba(34, 211, 238, 0.09);
+  color: #67e8f9;
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  background: rgba(34, 211, 238, 0.12);
   box-shadow:
-    0 0 18px rgba(34, 211, 238, 0.28),
+    0 0 18px rgba(34, 211, 238, 0.3),
     inset 0 0 12px rgba(34, 211, 238, 0.12);
   white-space: nowrap;
-  pointer-events: auto;
 }
 
 /* --- hero ---------------------------------------------------------------- */
 
 .hero {
   position: relative;
-  min-height: 100vh;
-  min-height: 100svh;
+  min-height: calc(100vh - var(--bar-height));
+  min-height: calc(100svh - var(--bar-height));
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -245,18 +258,19 @@ body {
 }
 
 /*
- * A one-sided veil, not a full overlay. It darkens the left third so the copy
- * has contrast and leaves the right two thirds of the machine untouched.
+ * A one-sided scrim, not a full overlay. It takes the left 40% of the frame
+ * almost to black so the copy has something to sit on, and leaves the rest of
+ * the machine untouched.
  */
 .hero-veil {
   position: absolute;
   inset: -10% -10% -20% -10%;
   background: linear-gradient(
     100deg,
-    rgba(10, 13, 20, 0.96) 0%,
-    rgba(10, 13, 20, 0.82) 26%,
-    rgba(10, 13, 20, 0.28) 52%,
-    rgba(10, 13, 20, 0) 72%
+    rgba(6, 9, 16, 0.98) 0%,
+    rgba(6, 9, 16, 0.95) 32%,
+    rgba(6, 9, 16, 0.58) 56%,
+    rgba(6, 9, 16, 0) 76%
   );
   pointer-events: none;
   will-change: transform;
@@ -278,7 +292,7 @@ body {
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--cyan);
+  color: #67e8f9;
 }
 
 .eyebrow-dot {
@@ -304,18 +318,18 @@ body {
 
 .hero-title {
   margin: 0 0 22px;
-  font-size: clamp(38px, 4.6vw, 62px);
-  line-height: 1.04;
+  font-size: clamp(38px, 4.4vw, 60px);
+  line-height: 1.05;
   letter-spacing: -0.035em;
   font-weight: 700;
+  color: #ffffff;
 }
 
-/* The gradient is the page's one piece of shine; it is reserved for the
-   headline and the KPI numbers so it keeps meaning something. */
+/* The gradient is the page's one piece of shine, reserved for the headline and
+   the KPI numbers so it keeps meaning something. It starts already tinted: a
+   gradient that opens on white spends its first word looking like plain text. */
 .grad {
   display: inline-block;
-  /* Starts already tinted. A gradient that opens on pure white spends its first
-     word looking like the plain text above it. */
   background: linear-gradient(100deg, #b9d4ff 0%, var(--accent-bright) 38%, var(--cyan) 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -342,14 +356,14 @@ body {
   max-width: 44ch;
   font-size: 13.5px;
   line-height: 1.55;
-  color: var(--text-dim);
+  color: var(--text-faint);
   min-height: 21px;
 }
 
 .hero-scroll {
   position: absolute;
   left: var(--gutter);
-  bottom: 34px;
+  bottom: 30px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -381,6 +395,52 @@ body {
   }
 }
 
+/* --- the sheet ----------------------------------------------------------- */
+
+/*
+ * Opaque backing for everything below the hero, and the single most important
+ * rule on this page: past the first screen, the canvas is behind paragraphs.
+ */
+.sheet {
+  position: relative;
+  z-index: 1;
+  background: var(--ink);
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+/*
+ * The canvas is fixed and full-viewport, so any strip the page does not cover
+ * shows the showroom through it — on a tall window, that is everything below the
+ * footer. This paints a viewport's worth of ink past the end of the page.
+ */
+.sheet::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 100vh;
+  background: var(--ink-2);
+  pointer-events: none;
+}
+
+/* A short fade above it so the hero does not end on a hard edge. */
+.sheet::before {
+  content: '';
+  position: absolute;
+  top: -120px;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 15, 26, 0) 0%,
+    rgba(10, 15, 26, 0.55) 45%,
+    rgba(10, 15, 26, 0.96) 100%
+  );
+  pointer-events: none;
+}
+
 /* --- buttons ------------------------------------------------------------- */
 
 .btn {
@@ -409,25 +469,25 @@ body {
 
 .btn--primary {
   background: linear-gradient(135deg, var(--accent), #0aa2d8);
-  box-shadow: 0 8px 26px rgba(0, 102, 255, 0.34);
+  box-shadow: 0 8px 26px rgba(0, 102, 255, 0.4);
 }
 
 .btn--primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 12px 34px rgba(0, 102, 255, 0.46);
+  box-shadow: 0 12px 34px rgba(0, 102, 255, 0.5);
 }
 
 .btn--glass {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.16);
+  background: rgba(10, 15, 26, 0.88);
+  border-color: rgba(255, 255, 255, 0.25);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
 }
 
 .btn--glass:hover:not(:disabled) {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(22, 32, 52, 0.94);
+  border-color: rgba(255, 255, 255, 0.4);
 }
 
 .btn:disabled {
@@ -438,14 +498,16 @@ body {
 
 /* --- bands --------------------------------------------------------------- */
 
+/* At least 80px of air above and below every section. Sections are meant to
+   arrive one at a time, not stack up inside one screen. */
 .band {
   position: relative;
-  padding: clamp(66px, 8vw, 118px) var(--gutter);
+  padding: clamp(80px, 8vw, 128px) var(--gutter);
 }
 
 .band--tight {
-  padding-top: 0;
-  padding-bottom: clamp(30px, 4vw, 56px);
+  padding-top: clamp(56px, 6vw, 88px);
+  padding-bottom: 0;
 }
 
 .wrap {
@@ -459,6 +521,7 @@ body {
   line-height: 1.1;
   letter-spacing: -0.03em;
   font-weight: 700;
+  color: #ffffff;
 }
 
 .band .eyebrow {
@@ -477,9 +540,9 @@ body {
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  padding: clamp(26px, 3vw, 40px);
-  gap: clamp(20px, 3vw, 40px);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  padding: clamp(28px, 3vw, 44px);
+  gap: clamp(24px, 3vw, 44px);
 }
 
 .kpi {
@@ -498,7 +561,7 @@ body {
   bottom: 6px;
   width: 2px;
   border-radius: 2px;
-  background: linear-gradient(180deg, var(--accent-bright), rgba(34, 211, 238, 0.15));
+  background: linear-gradient(180deg, var(--accent-bright), rgba(34, 211, 238, 0.2));
 }
 
 .kpi-value {
@@ -507,14 +570,14 @@ body {
   line-height: 1;
   letter-spacing: -0.04em;
   font-variant-numeric: tabular-nums;
-  filter: drop-shadow(0 0 22px rgba(0, 102, 255, 0.4));
+  filter: drop-shadow(0 0 22px rgba(0, 102, 255, 0.45));
 }
 
 .kpi-label {
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 14.5px;
   font-weight: 700;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .kpi-note {
@@ -529,7 +592,7 @@ body {
   display: grid;
   gap: 18px;
   grid-template-columns: repeat(auto-fit, minmax(268px, 1fr));
-  margin-top: 36px;
+  margin-top: 40px;
 }
 
 .card {
@@ -543,7 +606,7 @@ body {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;
-  color: var(--cyan);
+  color: #67e8f9;
 }
 
 .card h3 {
@@ -551,6 +614,7 @@ body {
   font-size: 20px;
   line-height: 1.24;
   letter-spacing: -0.02em;
+  color: #ffffff;
 }
 
 .card p {
@@ -562,11 +626,24 @@ body {
 
 /* --- catalogue ----------------------------------------------------------- */
 
+/*
+ * A defined container around the grid rather than cards floating on the page.
+ * It also keeps a row of two or three from drifting left on a wide window.
+ */
+.catalog-shell {
+  margin-top: 40px;
+  padding: clamp(20px, 2.6vw, 32px);
+  border-radius: 24px;
+  background: var(--ink-2);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
 .catalog {
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  margin-top: 36px;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  margin: 0 auto;
+  max-width: 1040px;
 }
 
 .unit {
@@ -581,10 +658,10 @@ body {
 
 .unit:hover {
   transform: translateY(-4px);
-  border-color: rgba(59, 139, 255, 0.45);
+  border-color: rgba(96, 165, 250, 0.55);
   box-shadow:
-    0 18px 44px rgba(0, 0, 0, 0.45),
-    0 0 0 1px rgba(59, 139, 255, 0.18);
+    0 18px 44px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(96, 165, 250, 0.2);
 }
 
 .unit-badge {
@@ -593,11 +670,11 @@ body {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.15em;
-  padding: 5px 10px;
+  padding: 6px 10px;
   border-radius: 6px;
-  color: var(--accent-bright);
-  border: 1px solid rgba(59, 139, 255, 0.32);
-  background: rgba(0, 102, 255, 0.1);
+  color: #9dc6ff;
+  border: 1px solid rgba(96, 165, 250, 0.45);
+  background: rgba(6, 10, 20, 0.92);
 }
 
 .unit-name {
@@ -606,6 +683,7 @@ body {
   font-weight: 700;
   line-height: 1.22;
   letter-spacing: -0.02em;
+  color: #ffffff;
 }
 
 .unit-ref {
@@ -624,11 +702,11 @@ body {
 .dim {
   display: inline-flex;
   align-items: baseline;
-  gap: 5px;
+  gap: 6px;
   padding: 6px 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(6, 10, 20, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
@@ -638,12 +716,12 @@ body {
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.12em;
-  color: var(--text-faint);
+  color: #8fa8c9;
 }
 
 .dim-value {
   font-weight: 700;
-  color: var(--text);
+  color: #ffffff;
 }
 
 .unit-foot {
@@ -653,19 +731,20 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .unit-spec {
   font-size: 12.5px;
-  color: var(--text-dim);
+  line-height: 1.4;
+  color: var(--text-faint);
 }
 
 .unit-cta {
   appearance: none;
-  border: 1px solid rgba(59, 139, 255, 0.4);
-  background: rgba(0, 102, 255, 0.14);
-  color: #dfeaff;
+  border: 1px solid rgba(96, 165, 250, 0.55);
+  background: rgba(0, 102, 255, 0.3);
+  color: #ffffff;
   border-radius: 999px;
   padding: 9px 16px;
   font-family: inherit;
@@ -680,9 +759,9 @@ body {
 }
 
 .unit-cta:hover {
-  background: rgba(0, 102, 255, 0.3);
-  border-color: rgba(59, 139, 255, 0.72);
-  box-shadow: 0 0 20px rgba(0, 102, 255, 0.32);
+  background: rgba(0, 102, 255, 0.55);
+  border-color: rgba(96, 165, 250, 0.85);
+  box-shadow: 0 0 20px rgba(0, 102, 255, 0.4);
 }
 
 /* --- control consoles ---------------------------------------------------- */
@@ -691,7 +770,7 @@ body {
   display: grid;
   gap: 18px;
   grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-  margin-top: 36px;
+  margin-top: 40px;
 }
 
 .console {
@@ -703,13 +782,14 @@ body {
   align-items: center;
   gap: 10px;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .console-head h3 {
   margin: 0;
   font-size: 17px;
   letter-spacing: -0.02em;
+  color: #ffffff;
 }
 
 .console-dot {
@@ -749,7 +829,7 @@ body {
   align-items: center;
   gap: 14px;
   padding: 11px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 14px;
   color: var(--text-dim);
 }
@@ -765,8 +845,8 @@ body {
   min-width: 118px;
 }
 
-/* Physical-looking keycaps. The bottom border and inset highlight are what sell
-   the depth; without them a kbd is just a bordered span. */
+/* Physical-looking keycaps. The heavy bottom border and the inset highlight are
+   what sell the depth; without them a kbd is a bordered span. */
 .kbd {
   display: inline-grid;
   place-items: center;
@@ -777,14 +857,14 @@ body {
   font-family: var(--mono);
   font-size: 12px;
   font-weight: 700;
-  color: var(--text);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03));
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-bottom-color: rgba(0, 0, 0, 0.6);
+  color: #ffffff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-bottom-color: rgba(0, 0, 0, 0.7);
   border-bottom-width: 2px;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.16),
-    0 2px 6px rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .kbd--wide {
@@ -796,30 +876,28 @@ body {
   min-width: 82px;
   font-size: 11px;
   border-radius: 999px;
-  color: #cfe2ff;
-  border-color: rgba(59, 139, 255, 0.4);
-  background: linear-gradient(180deg, rgba(0, 102, 255, 0.28), rgba(0, 102, 255, 0.1));
+  color: #dceaff;
+  border-color: rgba(96, 165, 250, 0.5);
+  background: linear-gradient(180deg, rgba(0, 102, 255, 0.4), rgba(0, 102, 255, 0.14));
 }
 
 /* Quest face buttons are round, and reading them as round is most of how you
-   recognise which control the row is talking about. */
+   recognise which control a row is talking about. */
 .kbd--round {
   min-width: 30px;
   border-radius: 50%;
   padding: 0;
-  color: #cfe2ff;
-  border-color: rgba(59, 139, 255, 0.4);
-  background: linear-gradient(180deg, rgba(0, 102, 255, 0.3), rgba(0, 102, 255, 0.08));
+  color: #dceaff;
+  border-color: rgba(96, 165, 250, 0.5);
+  background: linear-gradient(180deg, rgba(0, 102, 255, 0.42), rgba(0, 102, 255, 0.12));
 }
 
 /* --- footer -------------------------------------------------------------- */
 
 .foot {
-  padding: 44px var(--gutter) 56px;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(7, 9, 15, 0.7);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  padding: 48px var(--gutter) 60px;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--ink-2);
 }
 
 .foot-inner {
@@ -849,7 +927,7 @@ body {
 
 .dock {
   position: fixed;
-  z-index: 4;
+  z-index: 90;
   right: clamp(16px, 4vw, 40px);
   bottom: clamp(16px, 4vw, 34px);
   display: flex;
@@ -909,8 +987,8 @@ body {
 }
 
 @media (max-width: 720px) {
-  .topbar {
-    padding: 14px var(--gutter);
+  :root {
+    --bar-height: 56px;
   }
 
   .brand-badge {
@@ -919,6 +997,11 @@ body {
 
   .keys {
     min-width: 104px;
+  }
+
+  .unit-foot {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .dock {
