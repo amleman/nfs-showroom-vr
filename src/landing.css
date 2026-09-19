@@ -898,9 +898,9 @@ body {
 
 .foot p.foot-quote {
   margin: 0;
-  max-width: 20ch;
-  font-size: clamp(26px, 3.4vw, 44px);
-  line-height: 1.12;
+  max-width: 24ch;
+  font-size: clamp(26px, 3.2vw, 42px);
+  line-height: 1.14;
   letter-spacing: -0.03em;
   font-weight: 700;
   color: #ffffff;
