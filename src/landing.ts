@@ -22,7 +22,32 @@
 import { LocomotionSystem, SlideSystem, type World } from '@iwsdk/core';
 import { AmbienceSystem } from './ambience.js';
 import { DesktopNavigationSystem } from './desktop-navigation.js';
+import { MACHINE_CATALOG } from './machine-catalog.js';
+import { MachineSwapperSystem } from './machine-swapper.js';
 import './landing.css';
+
+/**
+ * Footprint of each machine once it is on the floor, in metres.
+ *
+ * The height of every machine is in `MACHINE_CATALOG`, but its length and width
+ * are consequences of that height and the model's own proportions, and they only
+ * exist after `fitMachineToFloor` has measured them at load time — which is far
+ * too late for a card the visitor reads before entering. So the two derived
+ * numbers are recorded here.
+ *
+ * They are display copy, not the source of truth: the spec panel inside the
+ * scene always quotes what it measured. Refresh these with `npm run inspect`
+ * after changing any machine's `realHeight`.
+ */
+const FOOTPRINT: Record<string, { length: number; width: number }> = {
+  'machine-dump-truck': { length: 15.5, width: 9.0 },
+  'machine-excavator': { length: 11.2, width: 4.1 },
+  'machine-backhoe': { length: 8.3, width: 2.3 },
+  'machine-robot-arm': { length: 2.1, width: 1.4 },
+  'machine-precision-arm': { length: 3.7, width: 2.4 },
+  'machine-service-truck': { length: 7.5, width: 3.2 },
+  'machine-tracked-vehicle': { length: 8.9, width: 4.0 },
+};
 
 /** Scroll distance, as a fraction of the viewport, before the dock appears. */
 const DOCK_THRESHOLD = 0.55;
@@ -49,7 +74,12 @@ export function startLanding(world: World): void {
   const backChip = createBackChip();
   let entered = false;
 
-  const enter = (mode: 'xr' | 'browser'): void => {
+  const enter = (mode: 'xr' | 'browser', machineIndex?: number): void => {
+    // Selecting before entering means the machine is already downloading while
+    // the page is still fading out, rather than after.
+    if (machineIndex != null) {
+      world.getSystem(MachineSwapperSystem)?.select(machineIndex);
+    }
     if (mode === 'xr') {
       world.launchXR();
     }
@@ -93,9 +123,84 @@ export function startLanding(world: World): void {
   });
 
   bindEntryButtons(world, enter);
+  buildCatalog(enter);
   bindParallax();
   bindReveal();
   bindDock(dock);
+}
+
+/**
+ * Build the catalogue grid from the same list the scene loads from.
+ *
+ * Generated rather than written into the markup so the page can never advertise
+ * a machine the carousel does not have, or miss one it does — and so each card's
+ * button can name the index it selects.
+ */
+function buildCatalog(
+  enter: (mode: 'xr' | 'browser', machineIndex?: number) => void,
+): void {
+  const grid = document.getElementById('catalog');
+  if (grid == null) {
+    return;
+  }
+
+  MACHINE_CATALOG.forEach((entry, index) => {
+    const footprint = FOOTPRINT[entry.assetId];
+    const dimensions: [string, string][] = [
+      ['LARGO', footprint == null ? '—' : `${footprint.length.toFixed(1)} m`],
+      ['ANCHO', footprint == null ? '—' : `${footprint.width.toFixed(1)} m`],
+      ['ALTO', `${entry.realHeight.toFixed(1)} m`],
+    ];
+
+    const unit = document.createElement('article');
+    unit.className = 'unit glass';
+    unit.dataset.reveal = '';
+
+    const badge = document.createElement('span');
+    badge.className = 'unit-badge';
+    badge.textContent = entry.category;
+
+    const name = document.createElement('h3');
+    name.className = 'unit-name';
+    name.textContent = entry.label;
+
+    const reference = document.createElement('p');
+    reference.className = 'unit-ref';
+    reference.textContent = entry.reference;
+
+    const dims = document.createElement('div');
+    dims.className = 'unit-dims';
+    for (const [key, value] of dimensions) {
+      const chip = document.createElement('span');
+      chip.className = 'dim';
+      const keyEl = document.createElement('span');
+      keyEl.className = 'dim-key';
+      keyEl.textContent = key;
+      const valueEl = document.createElement('span');
+      valueEl.className = 'dim-value';
+      valueEl.textContent = value;
+      chip.append(keyEl, valueEl);
+      dims.append(chip);
+    }
+
+    const foot = document.createElement('div');
+    foot.className = 'unit-foot';
+    const headline = entry.specs[0];
+    const spec = document.createElement('span');
+    spec.className = 'unit-spec';
+    spec.textContent =
+      headline == null ? '' : `${headline.label}: ${headline.value}`;
+
+    const cta = document.createElement('button');
+    cta.type = 'button';
+    cta.className = 'unit-cta';
+    cta.textContent = 'Ver en 3D';
+    cta.addEventListener('click', () => enter('browser', index));
+
+    foot.append(spec, cta);
+    unit.append(badge, name, reference, dims, foot);
+    grid.append(unit);
+  });
 }
 
 /**
