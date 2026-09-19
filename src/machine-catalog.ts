@@ -399,7 +399,11 @@ export const MACHINE_CATALOG: readonly MachineEntry[] = [
     // 2.37 m rather than the 2.06 m of a real Sierra 2500HD: +15% by eye, asked
     // for so it holds its own beside a 15 m haul truck.
     realHeight: 2.37,
-    yawDeg: 34,
+    // 164 rather than 34: +130 counter-clockwise, because the truck presented
+    // tail-on to the spawn. The number is large because `alignYawDeg` below
+    // squares the model up inside its own file first, and the two rotations
+    // compose.
+    yawDeg: 164,
     // The download parks the truck at -28.8 degrees inside its own file, which
     // measured 4.87 m across instead of 2.80 m. See `alignYawDeg` above.
     alignYawDeg: 28.8,
@@ -422,7 +426,7 @@ export const MACHINE_CATALOG: readonly MachineEntry[] = [
         id: 'amarre',
         kind: 'sso',
         title: 'Amarre de carga',
-        anchor: [0, 0.55, -0.55],
+        anchor: [0.6, 0.6, 0.6],
         body: 'Toda carga se asegura a cuatro puntos con tension suficiente para 0.8 g longitudinal. La carga suelta en la caja es la causa mas frecuente de lesion en soporte de flota.',
       },
       {
@@ -443,7 +447,7 @@ export const MACHINE_CATALOG: readonly MachineEntry[] = [
         id: 'servicio',
         kind: 'mto',
         title: 'Intervalo de servicio',
-        anchor: [0.6, 0.6, 0.6],
+        anchor: [0, 0.55, -0.55],
         body: 'Servicio cada 15 000 km o al indicar el monitor de vida del aceite. El filtro de particulas diesel exige ciclos de regeneracion: la operacion continua a baja velocidad lo satura.',
       },
     ],
