@@ -19,7 +19,7 @@
  * pointer events away from the canvas until the visitor actually goes in.
  */
 
-import type { World } from '@iwsdk/core';
+import { LocomotionSystem, SlideSystem, type World } from '@iwsdk/core';
 import { DesktopNavigationSystem } from './desktop-navigation.js';
 import './landing.css';
 
@@ -40,6 +40,10 @@ export function startLanding(world: World): void {
   // must not swallow the gestures that scroll it.
   container.style.pointerEvents = 'none';
   landing.dataset.state = 'landing';
+  // And the arrow keys that scroll this page are also bound to strafing now, so
+  // reading the landing would otherwise walk the visitor away from the spawn
+  // before they ever saw it.
+  setLocomotion(world, false);
 
   const backChip = createBackChip();
   let entered = false;
@@ -55,6 +59,7 @@ export function startLanding(world: World): void {
     landing.dataset.state = 'entered';
     container.style.pointerEvents = 'auto';
     document.body.style.overflow = 'hidden';
+    setLocomotion(world, true);
     if (dock != null) {
       dock.hidden = true;
     }
@@ -71,6 +76,7 @@ export function startLanding(world: World): void {
     landing.dataset.state = 'landing';
     container.style.pointerEvents = 'none';
     document.body.style.overflow = '';
+    setLocomotion(world, false);
     backChip.hidden = true;
     window.scrollTo(0, 0);
   };
@@ -86,6 +92,27 @@ export function startLanding(world: World): void {
   bindParallax();
   bindReveal();
   bindDock(dock);
+}
+
+/**
+ * Suspend or resume walking.
+ *
+ * `SlideSystem` is the one that actually moves the rig and it registers
+ * asynchronously, after the locomotor initialises, so `getSystem` can hand back
+ * nothing on an early call — hence the optional chaining rather than a lookup
+ * cached at startup.
+ */
+function setLocomotion(world: World, running: boolean): void {
+  for (const system of [
+    world.getSystem(LocomotionSystem),
+    world.getSystem(SlideSystem),
+  ]) {
+    if (running) {
+      system?.play();
+    } else {
+      system?.stop();
+    }
+  }
 }
 
 /**
