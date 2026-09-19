@@ -74,6 +74,8 @@ MachineTurntableSystem      una vuelta completa con smoothstep, y para
 EnvironmentSwitcherSystem   galeria  <->  nave industrial
 InspectionHotspotSystem     marcadores 3D sobre la maquina
 HotspotCardSystem           tarjeta flotante junto al marcador + linea guia
+MachineTitleSystem          rotulo grande sobre la maquina (quad + CanvasTexture)
+AmbienceSystem              ruido de sala sintetizado; lo despierta la landing
 MachineSelectorPanelSystem  panel selector -> swapper/turntable
 SpecPanelSystem             ficha tecnica + boton de entorno
 InspectionPanelSystem       lista de puntos + detalle
@@ -238,6 +240,13 @@ y solo se tocan si superan 1024 (color) o 512 (datos).
 
 ### UIKitML
 
+- **Un panel UIKitML grande puede no renderizar y no avisar.** El rotulo del
+  equipo se hizo primero como panel: previsualizaba perfecto en
+  `ui_render_preview`, quedaba bien colocado en escena (nodo correcto, hijo del
+  asset correcto, transform correcto, `Visibility` en true, cero warnings) y no
+  dibujaba nada, a ninguna anchura ni escala de nodo, con y sin
+  `RayInteractable`. Se resolvio con un quad y `CanvasTexture`, que ademas si
+  admite tildes.
 - **La fuente DM Sans empaquetada no tiene `·` ni `—`.** Salen como "Missing
   glyph info" en consola y como huecos en el panel. Tampoco te fíes de los
   acentos: **todo el texto de interfaz está deliberadamente sin tildes.**
@@ -325,8 +334,8 @@ es el que minimiza el ancho reportado.
 
 En navegador la experiencia es en primera persona, sin visor: **W A S D** o las
 flechas caminan, **arrastrar con el mouse** mira, **Q / E** cambian de equipo,
-**R** da una vuelta, **F** anima, **T** cambia de entorno, **Esc** vuelve a la
-landing. Las flechas pasaron a ser locomoción, y por eso el carrusel se movió a
+**R** da una vuelta, **F** anima, **T** cambia de entorno, **M** silencia el
+sonido, **Esc** vuelve a la landing. Las flechas pasaron a ser locomoción, y por eso el carrusel se movió a
 Q/E y la animación de E a F.
 
 ---

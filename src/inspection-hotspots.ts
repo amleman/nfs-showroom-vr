@@ -31,6 +31,7 @@ import {
   PokeInteractable,
   Pressed,
   RayInteractable,
+  Raycaster,
   signal,
   SphereGeometry,
   Vector3,
@@ -53,6 +54,23 @@ const HALO_SCALE = 2.1;
 /** Growth applied to the marker under the pointer, and to the selected one. */
 const HOVER_SCALE = 1.3;
 const SELECTED_SCALE = 1.45;
+/**
+ * How far outside the machine each snap ray starts, as a multiple of the
+ * authored anchor's own offset from the centreline.
+ */
+const RAY_START_FACTOR = 1.8;
+/**
+ * A marker floats this fraction of its own radius off the surface it landed on,
+ * so it reads as a tag on the machine rather than a bubble inside it.
+ */
+const SURFACE_LIFT = 0.55;
+/**
+ * Anchors closer to the machine's vertical axis than this fraction of its
+ * half-extent are left where they are. There is no meaningful outward direction
+ * for a point on the centreline, and those anchors — a robot's base reducer, a
+ * truck's driveline — are deliberately inside the machine anyway.
+ */
+const CENTRELINE_EPSILON = 0.08;
 
 /**
  * Safety orange, instrument cyan, maintenance green. Three colours because a
@@ -83,12 +101,24 @@ export class InspectionHotspotSystem extends createSystem({
   private readonly markers: Marker[] = [];
   /** Preallocated: `update` and the rebuild both run without allocating. */
   private anchor!: Vector3;
+  private centre!: Vector3;
+  private rayOrigin!: Vector3;
+  private rayDirection!: Vector3;
+  private raycaster!: Raycaster;
   /** Shared across every marker; disposed by world teardown, never by a marker. */
   private coreGeometry!: SphereGeometry;
   private haloGeometry!: SphereGeometry;
 
   init(): void {
     this.anchor = new Vector3();
+    this.centre = new Vector3();
+    this.rayOrigin = new Vector3();
+    this.rayDirection = new Vector3();
+    // A raycaster used for geometry, not for interaction — the project rule
+    // against hand-rolled raycasters is about input, and input here is
+    // `RayInteractable`. This runs five times per machine swap, inside the load
+    // the visitor is already waiting through.
+    this.raycaster = new Raycaster();
     // Low segment counts on purpose: these are 10 cm spheres and there may be
     // five of them. Nobody counts the facets, and the triangles are better spent
     // on the machine.
@@ -190,6 +220,9 @@ export class InspectionHotspotSystem extends createSystem({
     const yaw = (entry.yawDeg * Math.PI) / 180;
     const cos = Math.cos(yaw);
     const sin = Math.sin(yaw);
+    const mountObject = this.world.getSceneObject(MOUNT_NODE_ID);
+    const machine = swapper.mountedMachine;
+    mountObject?.updateWorldMatrix(true, true);
 
     for (let i = 0; i < entry.hotspots.length; i += 1) {
       const hotspot = entry.hotspots[i];
@@ -199,6 +232,7 @@ export class InspectionHotspotSystem extends createSystem({
       const x = nx * fit.halfX;
       const z = nz * fit.halfZ;
       this.anchor.set(x * cos + z * sin, ny * fit.height, -x * sin + z * cos);
+      this.snapToSurface(this.anchor, fit, radius, mountObject, machine);
 
       const color = KIND_COLOR[hotspot.kind];
 
@@ -246,6 +280,64 @@ export class InspectionHotspotSystem extends createSystem({
 
       this.markers.push({ entity, halo, baseScale });
     }
+  }
+
+  /**
+   * Pull an authored anchor onto the machine's actual skin.
+   *
+   * The anchors in `MACHINE_CATALOG` are normalised against the bounding box,
+   * which is what lets one authored point work on a 1.5 m robot arm and a 7.9 m
+   * haul truck — but a bounding box around an excavator with its boom up is
+   * mostly air, so an anchor that is correct in proportion can still land two
+   * metres off the steel. And every time a machine's `realHeight` is retuned,
+   * every one of its anchors moves again.
+   *
+   * So the anchor stops being a position and becomes a direction: a ray is cast
+   * from outside the machine, inward toward its centreline at that height, and
+   * the marker sits wherever that ray first meets geometry. Anchors are then
+   * only ever wrong about *which side* of the machine they name, which is a much
+   * easier thing to get right by eye.
+   *
+   * Leaves the anchor untouched when there is nothing to hit, so a bad snap can
+   * never be worse than the authored position.
+   */
+  private snapToSurface(
+    anchor: Vector3,
+    fit: NonNullable<MachineSwapperSystem['mountedFit']>,
+    radius: number,
+    mountObject: Object3D | undefined,
+    machine: Object3D | undefined,
+  ): void {
+    if (mountObject == null || machine == null) {
+      return;
+    }
+    // Points on the centreline have no outward direction, and are deliberately
+    // inside the machine in any case.
+    const reach = Math.hypot(anchor.x, anchor.z);
+    if (reach < Math.max(fit.halfX, fit.halfZ) * CENTRELINE_EPSILON) {
+      return;
+    }
+
+    this.centre.set(0, anchor.y, 0);
+    this.rayOrigin
+      .copy(this.centre)
+      .addScaledVector(
+        this.rayDirection.subVectors(anchor, this.centre),
+        RAY_START_FACTOR,
+      );
+    mountObject.localToWorld(this.rayOrigin);
+    mountObject.localToWorld(this.centre);
+    this.rayDirection.subVectors(this.centre, this.rayOrigin).normalize();
+
+    this.raycaster.set(this.rayOrigin, this.rayDirection);
+    const hits = this.raycaster.intersectObject(machine, true);
+    if (hits.length === 0) {
+      return;
+    }
+    anchor
+      .copy(hits[0].point)
+      .addScaledVector(this.rayDirection, -radius * SURFACE_LIFT);
+    mountObject.worldToLocal(anchor);
   }
 
   /**

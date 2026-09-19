@@ -20,6 +20,7 @@
  */
 
 import { LocomotionSystem, SlideSystem, type World } from '@iwsdk/core';
+import { AmbienceSystem } from './ambience.js';
 import { DesktopNavigationSystem } from './desktop-navigation.js';
 import './landing.css';
 
@@ -68,6 +69,9 @@ export function startLanding(world: World): void {
     // session and drops them back to this same page, and the desktop camera is
     // what they land in.
     world.getSystem(DesktopNavigationSystem)?.enable();
+    // This call is inside the button's own handler on purpose: it is the user
+    // gesture the browser requires before an AudioContext will actually run.
+    world.getSystem(AmbienceSystem)?.start();
     window.scrollTo(0, 0);
   };
 

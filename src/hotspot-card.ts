@@ -47,16 +47,38 @@ import type { Hotspot } from './machine-catalog.js';
 const CARD_NODE_ID = 'hotspot-card';
 
 /**
- * How far the card floats from its marker, toward the reader and upward.
+ * The card keeps a constant *apparent* size instead of a constant physical one.
  *
- * The horizontal part is capped against the reader's actual distance further
- * down: pushing a card 55 cm toward somebody standing 40 cm away would put it
- * behind their head.
+ * A card pinned half a metre from its marker is perfectly readable when the
+ * visitor is standing at the machine and an illegible postage stamp from ten
+ * metres back — and both of those happen, because the marker on a haul truck's
+ * tipper body is seven metres in the air whether you are next to it or not. So
+ * the card is placed on the line between the marker and the reader, at a
+ * distance from the reader that it chooses, and scaled to match. The result
+ * subtends the same angle from anywhere.
+ *
+ * Placing it on the reader's side of the marker is also what stops it sinking
+ * into the machine: at any viewing angle, the space between the reader and the
+ * thing they are looking at is empty by definition.
  */
-const OFFSET_TOWARD_READER = 0.55;
-const OFFSET_UP = 0.5;
-/** Never place the card closer to the reader than this, in metres. */
-const MIN_READER_CLEARANCE = 0.35;
+
+/** Fraction of the marker distance at which the card sits, before clamping. */
+const READER_DISTANCE_RATIO = 0.55;
+/** Card distance from the reader, in metres. */
+const MIN_CARD_DISTANCE = 0.45;
+const MAX_CARD_DISTANCE = 3.2;
+/** Keep this much air between the card and the marker it belongs to. */
+const MIN_MARKER_CLEARANCE = 0.4;
+/**
+ * Node scale per metre of card distance.
+ *
+ * The panel is 380 UIKit units wide, which is 3.8 m at scale 1, so 0.105 per
+ * metre puts it at 0.40 of the viewing distance — about 22 degrees across.
+ * Roughly a sheet of A4 held at reading distance, which is the target.
+ */
+const SCALE_PER_METRE = 0.105;
+/** A small lift so the connector has something to draw, and the card clears the marker. */
+const OFFSET_UP = 0.28;
 /** Radius of the connector, in metres. Thin enough to read as a leader line. */
 const CONNECTOR_RADIUS = 0.008;
 
@@ -179,26 +201,35 @@ export class HotspotCardSystem extends createSystem({}) {
     marker.getWorldPosition(this.markerWorld);
     this.world.camera.getWorldPosition(this.readerWorld);
 
-    // Push the card toward whoever is reading it, but never past them: at close
-    // range the offset shrinks to whatever clearance is left.
+    // Full 3D, not flattened: a marker seven metres up on a tipper body wants
+    // its card to come down toward the reader's eye line, not hang beside it.
     this.toReader.subVectors(this.readerWorld, this.markerWorld);
-    this.toReader.y = 0;
     const distance = this.toReader.length();
     if (distance < 1e-3) {
       this.toReader.set(0, 0, 1);
     } else {
       this.toReader.divideScalar(distance);
     }
-    const reach = Math.min(
-      OFFSET_TOWARD_READER,
-      Math.max(0, distance - MIN_READER_CLEARANCE),
+
+    // How far in front of the reader the card floats. Clamped at both ends and
+    // then again against the marker, so it can never pass through the point it
+    // is describing however close the visitor gets.
+    let cardDistance = Math.min(
+      MAX_CARD_DISTANCE,
+      Math.max(MIN_CARD_DISTANCE, distance * READER_DISTANCE_RATIO),
     );
+    cardDistance = Math.min(
+      cardDistance,
+      Math.max(MIN_CARD_DISTANCE, distance - MIN_MARKER_CLEARANCE),
+    );
+
     this.cardWorld
-      .copy(this.markerWorld)
-      .addScaledVector(this.toReader, reach);
+      .copy(this.readerWorld)
+      .addScaledVector(this.toReader, -cardDistance);
     this.cardWorld.y += OFFSET_UP;
 
     this.place(card, this.cardWorld);
+    card.scale.setScalar(SCALE_PER_METRE * cardDistance);
     // Panels are single-sided and face +Z, so this is atan2(dx, dz) toward the
     // reader with no 180-degree term. Yaw only: a card that pitches to follow
     // someone's eye line is harder to read, not easier.
@@ -277,7 +308,10 @@ export class HotspotCardSystem extends createSystem({}) {
     // The geometry is a unit cylinder standing on +Y; this turns that axis onto
     // the marker-to-card direction and stretches it to span the gap.
     connector.quaternion.setFromUnitVectors(this.up, this.axis);
-    connector.scale.set(1, length, 1);
+    // The radius tracks the card's own scale, so the leader stays a hairline at
+    // every viewing distance instead of becoming a pipe across the hall.
+    const radius = Math.max(0.5, (this.card?.scale.x ?? 0.2) / 0.2);
+    connector.scale.set(radius, length, radius);
   }
 
   /**
