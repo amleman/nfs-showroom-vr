@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <link rel="icon" href="data:," />
+    <meta
+      name="description"
+      content="Showroom industrial en realidad virtual: maquinaria pesada a escala 1:1 con ficha tecnica, puntos de inspeccion y criterios de seguridad y salud ocupacional, en el navegador."
+    />
+    <!--
+      Webfonts with a full system fallback behind them. The stand may run with no
+      internet at all, and the page has to look deliberate either way.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap"
+    />
+    <title>Showroom Industrial VR — Maquinaria a escala real</title>
+    <script type="module" crossorigin src="./assets/index-ZEekMvf8.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DefYkwqi.css">
+  </head>
+  <body>
+    <!--
+      Two layers, always both present. The canvas renders the showroom from the
+      scene's authored hero camera the whole time the landing is up, so the
+      backdrop behind the copy is the real thing rather than a screenshot; the
+      landing sits on top of it and gets out of the way when the visitor goes in.
+    -->
+    <div id="scene-container"></div>
+    <div class="backdrop" aria-hidden="true">
+      <div class="backdrop-grid"></div>
+      <div class="backdrop-glow backdrop-glow--a"></div>
+      <div class="backdrop-glow backdrop-glow--b"></div>
+    </div>
+
+    <main id="landing" class="landing" data-state="loading">
+      <!--
+        Inside the landing, not beside it: when the visitor goes in, the landing
+        is display:none and a fixed child goes with it. A header pinned outside
+        would still be floating over the showroom.
+      -->
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="IngVR Studio">
+          <span class="brand-mark" aria-hidden="true">
+            <span class="brand-mark-core"></span>
+          </span>
+          <span class="brand-word"><b>IngVR</b> Studio</span>
+        </a>
+        <span class="brand-badge">[ WEBXR PLATFORM ]</span>
+      </header>
+
+      <!--
+        The hero is a single narrow column on the left and nothing else. The
+        machine behind it is the argument the page is making, so the copy stays
+        out of the middle of the frame and the parallax has somewhere to move.
+      -->
+      <section class="hero">
+        <div class="hero-veil" data-parallax="0.12" aria-hidden="true"></div>
+        <div class="hero-column" data-parallax="0.34">
+          <p class="eyebrow">
+            <span class="eyebrow-dot" aria-hidden="true"></span>
+            Showroom industrial · WebXR
+          </p>
+          <h1 class="hero-title">
+            La escala real de tu industria,
+            <span class="grad">directo en tu navegador</span>
+          </h1>
+          <p class="lede">
+            Maquinaria pesada desplegada a escala 1:1, con ficha técnica, puntos
+            de inspección y criterios de seguridad y salud ocupacional sobre el
+            propio equipo. Sin instalar nada.
+          </p>
+          <div class="hero-actions">
+            <button id="cta-xr" class="btn btn--primary" type="button">
+              Pruébalo en XR
+            </button>
+            <button id="cta-browser" class="btn btn--glass" type="button">
+              Explorar en el navegador
+            </button>
+          </div>
+          <p id="xr-note" class="hero-note"></p>
+        </div>
+        <div class="hero-scroll" aria-hidden="true">
+          <span class="hero-scroll-rail"></span>
+          Desliza
+        </div>
+      </section>
+
+      <!--
+        Everything below the hero sits on an opaque sheet. The canvas is the
+        backdrop for the first screen only; past that it is behind body copy,
+        and body copy over a moving 3D render is unreadable at any opacity.
+      -->
+      <div class="sheet">
+
+      <!-- KPI banner -->
+      <section class="band band--tight">
+        <div class="wrap">
+          <div class="kpis glass" data-reveal>
+            <div class="kpi">
+              <span class="kpi-value grad">−70%</span>
+              <span class="kpi-label">Costos de logística</span>
+              <span class="kpi-note">Sin trasladar equipo ni personal a planta</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-value grad">0%</span>
+              <span class="kpi-label">Riesgo en SSO</span>
+              <span class="kpi-note">Inspección sin exposición a la máquina</span>
+            </div>
+            <div class="kpi">
+              <span class="kpi-value grad">1:1</span>
+              <span class="kpi-label">Escala real</span>
+              <span class="kpi-note">Dimensiones medidas sobre el modelo en escena</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band">
+        <div class="wrap">
+          <p class="eyebrow">El problema</p>
+          <h2>La escala no cabe en una diapositiva</h2>
+          <p class="body">
+            Un neumático 59/80R63 mide 4.02 metros de diámetro y pesa 5.3
+            toneladas. Escrito así es un dato; de pie junto a él es una decisión
+            de seguridad. Lo mismo vale para el radio de giro de una excavadora,
+            la altura de una plataforma de acceso o el punto ciego frontal de un
+            equipo de acarreo: son criterios que se enseñan con números y se
+            entienden con el cuerpo.
+          </p>
+          <div class="cards">
+            <article class="card glass" data-reveal>
+              <span class="card-index">01</span>
+              <h3>Escala 1:1 medida</h3>
+              <p>
+                Cada equipo se ajusta a la altura real publicada de su máquina de
+                referencia, y la ficha cita las dimensiones medidas del modelo ya
+                escalado. Lo que se lee es el tamaño de lo que se tiene enfrente.
+              </p>
+            </article>
+            <article class="card glass" data-reveal>
+              <span class="card-index">02</span>
+              <h3>Ficha técnica en la escena</h3>
+              <p>
+                Capacidad de carga, peso operativo, potencia y presión sobre el
+                suelo, junto a un bloque de monitoreo de condición marcado
+                explícitamente como simulado.
+              </p>
+            </article>
+            <article class="card glass" data-reveal>
+              <span class="card-index">03</span>
+              <h3>Puntos de inspección y SSO</h3>
+              <p>
+                Marcadores sobre la propia máquina. Al tocarlos aparece una
+                tarjeta con el criterio técnico, de mantenimiento preventivo o de
+                seguridad, ahí mismo donde se está parado.
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!--
+        The catalogue grid is built by landing.ts from MACHINE_CATALOG, so it can
+        never drift from what the scene actually loads, and each card's button
+        can select that machine before entering.
+      -->
+      <section class="band">
+        <div class="wrap">
+          <p class="eyebrow">El catálogo</p>
+          <h2>Siete equipos, dos naves</h2>
+          <p class="body">
+            Los equipos se cambian sin salir de la escena, y el showroom alterna
+            entre una galería de exhibición de 50 × 43 m con 14 m de altura libre
+            y una nave industrial de 21 m de ancho.
+          </p>
+          <div class="catalog-shell">
+            <div id="catalog" class="catalog"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Controls, as a console readout rather than a list of sentences. -->
+      <section class="band">
+        <div class="wrap">
+          <p class="eyebrow">Controles</p>
+          <h2>Cómo se recorre</h2>
+          <div class="consoles">
+            <div class="console glass" data-reveal>
+              <header class="console-head">
+                <span class="console-dot console-dot--xr" aria-hidden="true"></span>
+                <h3>Con visor</h3>
+                <span class="console-tag">Meta Quest</span>
+              </header>
+              <ul class="console-rows">
+                <li><span class="keys"><kbd class="kbd kbd--stick">Palanca L</kbd></span><span>Caminar</span></li>
+                <li><span class="keys"><kbd class="kbd kbd--stick">Palanca R</kbd></span><span>Girar la vista</span></li>
+                <li><span class="keys"><kbd class="kbd kbd--round">A</kbd><kbd class="kbd kbd--round">B</kbd></span><span>Equipo siguiente y anterior</span></li>
+                <li><span class="keys"><kbd class="kbd kbd--round">X</kbd></span><span>Una vuelta completa del equipo</span></li>
+                <li><span class="keys"><kbd class="kbd kbd--round">Y</kbd></span><span>Animar la máquina</span></li>
+                <li><span class="keys"><kbd class="kbd kbd--wide">Gatillo</kbd></span><span>Tocar un punto de inspección</span></li>
+              </ul>
+            </div>
+            <div class="console glass" data-reveal>
+              <header class="console-head">
+                <span class="console-dot console-dot--web" aria-hidden="true"></span>
+                <h3>En el navegador</h3>
+                <span class="console-tag">Sin visor</span>
+              </header>
+              <ul class="console-rows">
+                <li><span class="keys"><kbd class="kbd">W</kbd><kbd class="kbd">A</kbd><kbd class="kbd">S</kbd><kbd class="kbd">D</kbd></span><span>Caminar</span></li>
+                <li><span class="keys"><kbd class="kbd kbd--wide">Arrastrar</kbd></span><span>Mirar alrededor</span></li>
+                <li><span class="keys"><kbd class="kbd">Q</kbd><kbd class="kbd">E</kbd></span><span>Equipo anterior y siguiente</span></li>
+                <li><span class="keys"><kbd class="kbd">R</kbd></span><span>Una vuelta completa del equipo</span></li>
+                <li><span class="keys"><kbd class="kbd">F</kbd></span><span>Animar la máquina</span></li>
+                <li><span class="keys"><kbd class="kbd">T</kbd><kbd class="kbd">M</kbd></span><span>Cambiar de nave · silenciar</span></li>
+                <li><span class="keys"><kbd class="kbd kbd--wide">Clic</kbd></span><span>Tocar un punto o un panel</span></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <div class="wrap foot-inner">
+          <!--
+            A rotator, not a slogan. The closing claims are all about the medium
+            rather than the machines, and there are more good ones than a footer
+            can hold at once. The first is in the markup so the footer is never
+            empty before landing.ts takes over.
+          -->
+          <p class="foot-quote is-in" id="foot-quote">
+            Puedes describir una máquina durante una hora y no haber dicho nada
+            de su tamaño.
+            <span class="grad">Quien puede llevarte no necesita convencerte.</span>
+          </p>
+          <div class="foot-meta-row">
+            <p>
+              Construido sobre el Immersive Web SDK de Meta y three.js. Corre en
+              el navegador de Meta Quest 3 y en cualquier navegador de escritorio.
+            </p>
+            <p class="foot-meta">IngVR Studio · 2026</p>
+          </div>
+        </div>
+      </footer>
+
+      </div>
+    </main>
+
+    <!--
+      Fixed, and deliberately outside the scrolling landing: from the second
+      screen onward this is the only way back to the one thing the page is for.
+    -->
+    <div id="dock" class="dock glass" hidden>
+      <button id="dock-xr" class="btn btn--primary btn--sm" type="button">
+        Pruébalo en XR
+      </button>
+      <button id="dock-browser" class="btn btn--glass btn--sm" type="button">
+        Explorar en el navegador
+      </button>
+    </div>
+
+  </body>
+</html>

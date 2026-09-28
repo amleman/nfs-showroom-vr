@@ -186,7 +186,7 @@ Planned, designed, and deliberately not built:
   ready-made idle loop. It is also EA's copyrighted work.
 - **Headlights**, which need per-car material names gathered model by model.
 - **Immersive repainting** with a spray gun. There is an approved, unimplemented
-  plan in [`docs/plan-cambio-de-color-de-pintura.md`](docs/plan-cambio-de-color-de-pintura.md),
+  plan in [`notes/plan-cambio-de-color-de-pintura.md`](notes/plan-cambio-de-color-de-pintura.md),
   including the measured body-material name for six of the eight cars.
 - **Grabbable props**, a cinematic intro, and an easter egg.
 
